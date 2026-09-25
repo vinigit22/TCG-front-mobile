@@ -1,0 +1,68 @@
+import { Torneio } from "../models/types";
+
+export const torneiosMock: Torneio[] = [
+  {
+    id: 1,
+    lojaId: 1,
+    nomeLoja: "Card House",
+    jogoId: 2,
+    jogo: "Pokémon TCG",
+    titulo: "Torneio Pokémon Standard",
+    descricao: "Torneio semanal de Pokémon TCG, formato Standard, melhor de 3.",
+    vagasMax: 32,
+    vagasDisponiveis: 12,
+    taxaInscricao: 20,
+    premiacao: "R$ 300 em creditos + boosters para o campeão",
+    dataInicio: "2026-09-25T14:00:00",
+    status: "INSCRICOES_ABERTAS",
+  },
+  {
+    id: 2,
+    lojaId: 1,
+    nomeLoja: "Card House",
+    jogoId: 3,
+    jogo: "Yu-Gi-Oh!",
+    titulo: "Duelo de Outono",
+    descricao: "Torneio classificatório de Yu-Gi-Oh!, formato Advanced.",
+    vagasMax: 16,
+    vagasDisponiveis: 0,
+    taxaInscricao: 15,
+    premiacao: "Kit de sleeves + booster box",
+    dataInicio: "2026-09-27T15:30:00",
+    status: "INSCRICOES_ENCERRADAS",
+  },
+  {
+    id: 3,
+    lojaId: 1,
+    nomeLoja: "Card House",
+    jogoId: 4,
+    jogo: "One Piece Card Game",
+    titulo: "Grand Line Cup",
+    descricao: "Torneio mensal de One Piece Card Game.",
+    vagasMax: 8,
+    vagasDisponiveis: 3,
+    taxaInscricao: 10,
+    premiacao: "Playmat exclusivo para o campeão",
+    dataInicio: "2026-10-02T18:00:00",
+    status: "INSCRICOES_ABERTAS",
+  },
+  {
+    id: 4,
+    lojaId: 1,
+    nomeLoja: "Card House",
+    jogoId: 2,
+    jogo: "Pokémon TCG",
+    titulo: "Copa Bela Vista",
+    descricao: "Torneio já em andamento, chaveamento liberado.",
+    vagasMax: 4,
+    vagasDisponiveis: 0,
+    taxaInscricao: 0,
+    dataInicio: "2026-09-20T19:00:00",
+    totalRodadas: 2,
+    status: "EM_ANDAMENTO",
+  },
+];
+
+export function buscarTorneioMock(id: number): Torneio | undefined {
+  return torneiosMock.find((torneio) => torneio.id === id);
+}

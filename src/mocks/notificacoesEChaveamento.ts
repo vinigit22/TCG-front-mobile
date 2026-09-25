@@ -1,0 +1,72 @@
+import { Chaveamento, Notificacao } from "../models/types";
+
+export const notificacoesMock: Notificacao[] = [
+  {
+    id: 1,
+    tipo: "INSCRICAO_CONFIRMADA",
+    titulo: "Inscrição confirmada",
+    mensagem: "Sua inscrição no Torneio Pokémon Standard foi confirmada.",
+    torneioId: 1,
+    lida: false,
+    criadoEm: "2026-09-20T10:00:00",
+  },
+  {
+    id: 2,
+    tipo: "PAREAMENTO",
+    titulo: "Novo confronto disponível",
+    mensagem: "Rodada 2: você enfrenta João Silva na mesa 12 às 16:30.",
+    torneioId: 4,
+    partidaId: 12,
+    lida: false,
+    criadoEm: "2026-09-20T16:00:00",
+  },
+  {
+    id: 3,
+    tipo: "TORNEIO_INICIADO",
+    titulo: "Torneio iniciado",
+    mensagem: "A Copa Bela Vista começou. Confira sua primeira partida.",
+    torneioId: 4,
+    lida: true,
+    criadoEm: "2026-09-20T19:00:00",
+  },
+];
+
+export const chaveamentoMock: Chaveamento[] = [
+  {
+    torneioId: 4,
+    rodada: 1,
+    nomeRodada: "Semifinal",
+    partidaId: 1,
+    mesa: 1,
+    jogadorA: "vinimarques",
+    jogadorB: "ericabreu",
+    gamesA: 2,
+    gamesB: 1,
+    resultado: "VITORIA_A",
+    vencedor: "vinimarques",
+    status: "FINALIZADA",
+  },
+  {
+    torneioId: 4,
+    rodada: 1,
+    nomeRodada: "Semifinal",
+    partidaId: 2,
+    mesa: 2,
+    jogadorA: "sambarbosa",
+    jogadorB: "lucassz",
+    gamesA: 0,
+    gamesB: 0,
+    status: "EM_ANDAMENTO",
+  },
+  {
+    torneioId: 4,
+    rodada: 2,
+    nomeRodada: "Final",
+    partidaId: 3,
+    mesa: 1,
+    jogadorA: "vinimarques",
+    gamesA: 0,
+    gamesB: 0,
+    status: "AGUARDANDO",
+  },
+];

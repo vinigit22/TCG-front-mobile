@@ -1,98 +1,133 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { BarraNavegacao } from "../../src/components/barraNavegacao";
+import { TorneioCard } from "../../src/components/torneioCard";
+import { useTorneios } from "../../src/hooks/useTorneios";
+import { cores } from "../../src/constants/colors";
+import { espacamento, tamanhoFonte } from "../../src/constants/theme";
+import { Torneio } from "../../src/models/types";
+import { useNotificacoes } from "../../src/context/notificacaoContext";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function Home() {
+  const router = useRouter();
+  const { torneios, carregando, erro } = useTorneios();
+  const [termoPesquisa, setTermoPesquisa] = useState("");
+  const [mostrarPesquisa, setMostrarPesquisa] = useState(true);
+  const ultimoOffset = useRef(0);
 
-export default function HomeScreen() {
+  const { quantidadeNaoLidas } = useNotificacoes();
+
+  const torneiosFiltrados = useMemo(() => {
+    const termo = termoPesquisa.trim().toLowerCase();
+
+    if (!termo) {
+      return torneios;
+    }
+
+    return torneios.filter(
+      (torneio) =>
+        torneio.titulo.toLowerCase().includes(termo) ||
+        torneio.jogo.toLowerCase().includes(termo) ||
+        torneio.nomeLoja.toLowerCase().includes(termo)
+    );
+  }, [torneios, termoPesquisa]);
+
+  function abrirTorneio(torneio: Torneio) {
+    router.push(`/torneio/${torneio.id}`);
+  }
+
+  function aoRolar(evento: NativeSyntheticEvent<NativeScrollEvent>) {
+    const offsetAtual = evento.nativeEvent.contentOffset.y;
+
+    if (offsetAtual <= 0) {
+      setMostrarPesquisa(true);
+      ultimoOffset.current = 0;
+      return;
+    }
+
+    if (offsetAtual > ultimoOffset.current + 8) {
+      setMostrarPesquisa(false);
+    } else if (offsetAtual < ultimoOffset.current - 8) {
+      setMostrarPesquisa(true);
+    }
+
+    ultimoOffset.current = offsetAtual;
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View style={estilos.container}>
+      <BarraNavegacao
+        termoPesquisa={termoPesquisa}
+        aoMudarPesquisa={setTermoPesquisa}
+        aoAbrirNotificacoes={() => router.push("/notificacoes")}
+        aoAbrirPerfil={() => router.push("/perfil")}
+        quantidadeNaoLidas={quantidadeNaoLidas}
+        mostrarPesquisa={mostrarPesquisa}
+      />
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      {carregando ? (
+        <View style={estilos.centralizado}>
+          <ActivityIndicator color={cores.verdeEscuro} size="large" />
+        </View>
+      ) : erro ? (
+        <View style={estilos.centralizado}>
+          <Text style={estilos.mensagem}>
+            Não foi possível carregar os torneios.
+          </Text>
+        </View>
+      ) : torneiosFiltrados.length === 0 ? (
+        <View style={estilos.centralizado}>
+          <Text style={estilos.mensagem}>
+            Nenhum torneio encontrado.
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={torneiosFiltrados}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={estilos.lista}
+          renderItem={({ item }) => (
+            <TorneioCard
+              torneio={item}
+              aoPressionar={abrirTorneio}
+            />
+          )}
+          onScroll={aoRolar}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+const estilos = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: cores.fundo,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  lista: {
+    padding: espacamento.md,
+    paddingBottom: espacamento.xl,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  centralizado: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: espacamento.lg,
+  },
+  mensagem: {
+    color: cores.textoSecundario,
+    fontSize: tamanhoFonte.md,
+    textAlign: "center",
   },
 });

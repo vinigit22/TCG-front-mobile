@@ -1,24 +1,47 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import React from "react";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AuthProvider } from "../src/context/authContext";
+import { NotificacaoProvider } from "../src/context/notificacaoContext";
+import { cores } from "../src/constants/colors";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
+export default function LayoutRaiz() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <NotificacaoProvider>
+          <StatusBar style="light" />
+
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: {
+                backgroundColor: cores.fundo,
+              },
+            }}
+          >
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="torneio/[id]/index" />
+            <Stack.Screen name="torneio/[id]/chaveamento" />
+            <Stack.Screen name="torneio/[id]/confronto" />
+            <Stack.Screen name="meus-torneios" />
+            <Stack.Screen name="deck" />
+            <Stack.Screen
+              name="login"
+              options={{
+                presentation: "modal",
+              }}
+            />
+            <Stack.Screen
+              name="cadastro"
+              options={{
+                presentation: "modal",
+              }}
+            />
+          </Stack>
+        </NotificacaoProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
