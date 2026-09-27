@@ -12,6 +12,7 @@ interface AuthContextDados {
   login: (dados: LoginRequest) => Promise<void>;
   cadastrar: (dados: CadastroRequest) => Promise<void>;
   logout: () => Promise<void>;
+  atualizarPerfil: (dados: Partial<Usuario>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextDados>({} as AuthContextDados);
@@ -79,6 +80,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setErro(null);
   }
 
+  async function atualizarPerfil(dados: Partial<Usuario>) {
+    if (!usuario) return;
+    const atualizado = { ...usuario, ...dados };
+    await AsyncStorage.setItem(CHAVE_USUARIO, JSON.stringify(atualizado));
+    setUsuario(atualizado);
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -89,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         cadastrar,
         logout,
+        atualizarPerfil,
       }}
     >
       {children}

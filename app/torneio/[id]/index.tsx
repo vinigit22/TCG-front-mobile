@@ -23,13 +23,13 @@ export default function DetalhesTorneio() {
 
   if (!torneio) {
     return (
-      
-      <View style={estilos.centralizado}>
-        <Text style={estilos.mensagemErro}>Torneio não encontrado.</Text>
+      <View style={estilos.container}>
+        <BotaoVoltar />
+        <View style={estilos.centralizado}>
+          <Text style={estilos.mensagemErro}>Torneio não encontrado.</Text>
+        </View>
       </View>
-      
     );
-
   }
 
   const data = new Date(torneio.dataInicio);
@@ -62,57 +62,64 @@ export default function DetalhesTorneio() {
   const mostrarChaveamento = torneio.status === "EM_ANDAMENTO" || torneio.status === "FINALIZADO";
 
   return (
-    <ScrollView style={estilos.container} contentContainerStyle={[estilos.conteudo, { paddingTop: insets.top + espacamento.lg, paddingBottom: insets.bottom + espacamento.xl }]} showsVerticalScrollIndicator={false}>
-      <Text style={estilos.jogo}>{torneio.jogo}</Text>
-      <Text style={estilos.titulo}>{torneio.titulo}</Text>
-      <Loja nome={torneio.nomeLoja} />
+    <View style={estilos.container}>
+      <BotaoVoltar />
+      <ScrollView
+        style={estilos.scroll}
+        contentContainerStyle={[estilos.conteudo, { paddingBottom: insets.bottom + espacamento.xl }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={estilos.jogo}>{torneio.jogo}</Text>
+        <Text style={estilos.titulo}>{torneio.titulo}</Text>
+        <Loja nome={torneio.nomeLoja} />
 
-      {torneio.descricao ? <Text style={estilos.descricao}>{torneio.descricao}</Text> : null}
+        {torneio.descricao ? <Text style={estilos.descricao}>{torneio.descricao}</Text> : null}
 
-      <View style={estilos.card}>
-        <View style={estilos.linha}>
-          <Text style={estilos.rotulo}>Data</Text>
-          <Text style={estilos.valor}>{dataFormatada}</Text>
-        </View>
-        <View style={estilos.linha}>
-          <Text style={estilos.rotulo}>Horário</Text>
-          <Text style={estilos.valor}>{horarioFormatado}</Text>
-        </View>
-        {torneio.taxaInscricao > 0 ? (
+        <View style={estilos.card}>
           <View style={estilos.linha}>
-            <Text style={estilos.rotulo}>Inscrição</Text>
-            <Text style={estilos.valor}>R$ {torneio.taxaInscricao.toFixed(2)}</Text>
+            <Text style={estilos.rotulo}>Data</Text>
+            <Text style={estilos.valor}>{dataFormatada}</Text>
           </View>
-        ) : null}
-        {torneio.premiacao ? (
           <View style={estilos.linha}>
-            <Text style={estilos.rotulo}>Premiação</Text>
-            <Text style={estilos.valor}>{torneio.premiacao}</Text>
+            <Text style={estilos.rotulo}>Horário</Text>
+            <Text style={estilos.valor}>{horarioFormatado}</Text>
           </View>
-        ) : null}
-        <View style={estilos.linha}>
-          <Text style={estilos.rotulo}>Vagas</Text>
-          <Vagas vagasMax={torneio.vagasMax} vagasDisponiveis={torneio.vagasDisponiveis} />
+          {torneio.taxaInscricao > 0 ? (
+            <View style={estilos.linha}>
+              <Text style={estilos.rotulo}>Inscrição</Text>
+              <Text style={estilos.valor}>R$ {torneio.taxaInscricao.toFixed(2)}</Text>
+            </View>
+          ) : null}
+          {torneio.premiacao ? (
+            <View style={estilos.linha}>
+              <Text style={estilos.rotulo}>Premiação</Text>
+              <Text style={estilos.valor}>{torneio.premiacao}</Text>
+            </View>
+          ) : null}
+          <View style={estilos.linha}>
+            <Text style={estilos.rotulo}>Vagas</Text>
+            <Vagas vagasMax={torneio.vagasMax} vagasDisponiveis={torneio.vagasDisponiveis} />
+          </View>
         </View>
-      </View>
 
-      <InscricaoButton estado={estadoInscricao} aoPressionar={aoPressionarInscricao} />
+        <InscricaoButton estado={estadoInscricao} aoPressionar={aoPressionarInscricao} />
 
-      {mostrarChaveamento ? (
-        <Text style={estilos.linkChaveamento} onPress={() => router.push(`/torneio/${torneio.id}/chaveamento`)}>
-          Ver chaveamento →
-        </Text>
-      ) : null}
+        {mostrarChaveamento ? (
+          <Text style={estilos.linkChaveamento} onPress={() => router.push(`/torneio/${torneio.id}/chaveamento`)}>
+            Ver chaveamento →
+          </Text>
+        ) : null}
 
-      {inscrito ? (
-        <Text
-          style={estilos.linkChaveamento}
-          onPress={() => router.push(`/torneio/${torneio.id}/confronto`)}
-        >
-          Acompanhar minha partida →
-        </Text>
-      ) : null}
-    </ScrollView>
+        {inscrito ? (
+          <Text
+            style={estilos.linkChaveamento}
+            onPress={() => router.push(`/torneio/${torneio.id}/confronto`)}
+          >
+            Acompanhar minha partida →
+          </Text>
+        ) : null}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -121,6 +128,9 @@ const estilos = StyleSheet.create({
     flex: 1,
     backgroundColor: cores.fundo,
   },
+  scroll: {
+    flex: 1,
+  },
   conteudo: {
     padding: espacamento.lg,
   },
@@ -128,7 +138,6 @@ const estilos = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: cores.fundo,
   },
   mensagemErro: {
     color: cores.textoSecundario,

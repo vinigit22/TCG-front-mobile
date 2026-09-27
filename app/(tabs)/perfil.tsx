@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React from "react";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../src/context/authContext";
@@ -10,7 +10,6 @@ export default function Perfil() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { usuario, autenticado, logout } = useAuth();
-  const [configuracoesAbertas, setConfiguracoesAbertas] = useState(false);
 
   if (!autenticado || !usuario) {
     return (
@@ -35,11 +34,21 @@ export default function Perfil() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      <View style={estilos.avatar}>
-        <Text style={estilos.avatarTexto}>
-          {(usuario.nickname ?? usuario.nome).slice(0, 2).toUpperCase()}
-        </Text>
-      </View>
+      <Pressable onPress={() => router.push("/editar-perfil")} style={estilos.avatarToque}>
+        {usuario.foto ? (
+          <Image source={{ uri: usuario.foto }} style={estilos.avatarImagem} />
+        ) : (
+          <View style={estilos.avatar}>
+            <Text style={estilos.avatarTexto}>
+              {(usuario.nickname ?? usuario.nome).slice(0, 2).toUpperCase()}
+            </Text>
+          </View>
+        )}
+        <View style={estilos.avatarEditarSelo}>
+          <Text style={estilos.avatarEditarTexto}>✎</Text>
+        </View>
+      </Pressable>
+
       <Text style={estilos.nome}>{usuario.nome}</Text>
       {usuario.nickname ? <Text style={estilos.nickname}>@{usuario.nickname}</Text> : null}
       <Text style={estilos.email}>{usuario.email}</Text>
@@ -53,27 +62,10 @@ export default function Perfil() {
           <Text style={estilos.itemTexto}>Meu deck</Text>
           <Text style={estilos.itemSeta}>›</Text>
         </Pressable>
-        <Pressable style={estilos.item} onPress={() => setConfiguracoesAbertas((aberto) => !aberto)}>
+        <Pressable style={estilos.item} onPress={() => router.push("/configuracoes")}>
           <Text style={estilos.itemTexto}>⚙ Configurações</Text>
-          <Text style={estilos.itemSeta}>{configuracoesAbertas ? "⌃" : "›"}</Text>
+          <Text style={estilos.itemSeta}>›</Text>
         </Pressable>
-
-        {configuracoesAbertas ? (
-          <View style={estilos.painelConfiguracoes}>
-            <Pressable style={estilos.configItem} onPress={() => {}}>
-              <Text style={estilos.configTitulo}>Editar perfil</Text>
-              <Text style={estilos.configDescricao}>Alterar suas informações pessoais.</Text>
-            </Pressable>
-            <Pressable style={estilos.configItem} onPress={() => {}}>
-              <Text style={estilos.configTitulo}>Notificações</Text>
-              <Text style={estilos.configDescricao}>Preferências de avisos do aplicativo.</Text>
-            </Pressable>
-            <View style={estilos.configItem}>
-              <Text style={estilos.configTitulo}>Sobre o MERUEM.INC</Text>
-              <Text style={estilos.configDescricao}>Aplicativo para acompanhamento de eventos e torneios de TCG.</Text>
-            </View>
-          </View>
-        ) : null}
       </View>
 
       <Pressable style={estilos.botaoSair} onPress={logout}>
@@ -86,6 +78,7 @@ export default function Perfil() {
 const estilos = StyleSheet.create({
   container: { flex: 1, backgroundColor: cores.fundo },
   conteudo: { alignItems: "center", paddingHorizontal: espacamento.lg },
+  avatarToque: { marginBottom: espacamento.md },
   avatar: {
     width: 88,
     height: 88,
@@ -93,8 +86,26 @@ const estilos = StyleSheet.create({
     backgroundColor: cores.roxo,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: espacamento.md,
   },
+  avatarImagem: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+  },
+  avatarEditarSelo: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: cores.magenta,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: cores.fundo,
+  },
+  avatarEditarTexto: { color: cores.textoClaro, fontSize: 13, fontWeight: "900" },
   avatarTexto: { color: cores.textoClaro, fontSize: tamanhoFonte.xl, fontWeight: "900" },
   nome: { color: cores.textoEscuro, fontSize: tamanhoFonte.lg, fontWeight: "800" },
   nickname: { color: cores.magenta, fontSize: tamanhoFonte.sm, fontWeight: "700", marginTop: 2 },
@@ -112,17 +123,6 @@ const estilos = StyleSheet.create({
   },
   itemTexto: { color: cores.textoEscuro, fontSize: tamanhoFonte.md, fontWeight: "600" },
   itemSeta: { color: cores.textoSecundario, fontSize: tamanhoFonte.lg },
-  painelConfiguracoes: {
-    width: "100%",
-    backgroundColor: cores.fundoClaro,
-    borderRadius: raio.md,
-    padding: espacamento.sm,
-    borderWidth: 1,
-    borderColor: cores.verdeEscuro,
-  },
-  configItem: { padding: espacamento.sm },
-  configTitulo: { color: cores.verdeEscuro, fontSize: tamanhoFonte.sm, fontWeight: "800" },
-  configDescricao: { color: cores.textoSecundario, fontSize: tamanhoFonte.xs, marginTop: 3 },
   botaoSair: {
     marginTop: espacamento.xl,
     borderWidth: 2,

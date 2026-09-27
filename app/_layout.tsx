@@ -27,6 +27,8 @@ export default function LayoutRaiz() {
             <Stack.Screen name="torneio/[id]/confronto" />
             <Stack.Screen name="meus-torneios" />
             <Stack.Screen name="deck" />
+            <Stack.Screen name="configuracoes" />
+            <Stack.Screen name="editar-perfil" />
             <Stack.Screen
               name="login"
               options={{
