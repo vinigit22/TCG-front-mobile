@@ -93,10 +93,10 @@ const estilos = StyleSheet.create({
     paddingHorizontal: espacamento.md,
     marginBottom: espacamento.sm,
   },
-  filtros: {
+    filtros: {
     paddingHorizontal: espacamento.md,
     gap: espacamento.sm,
-    paddingBottom: espacamento.sm,
+    paddingBottom: espacamento.xs,
   },
   chip: {
     backgroundColor: cores.branco,
@@ -106,6 +106,8 @@ const estilos = StyleSheet.create({
     paddingVertical: espacamento.xs,
     paddingHorizontal: espacamento.md,
     marginRight: espacamento.sm,
+    overflow: "hidden",
+    alignSelf: "flex-start",
   },
   chipSelecionado: {
     backgroundColor: cores.verdeEscuro,
@@ -118,8 +120,10 @@ const estilos = StyleSheet.create({
   chipTextoSelecionado: {
     color: cores.textoClaro,
   },
-  lista: {
-    padding: espacamento.md,
+    lista: {
+    paddingHorizontal: espacamento.md,
+    paddingTop: espacamento.xs,
+    paddingBottom: espacamento.md,
   },
   centralizado: {
     flex: 1,

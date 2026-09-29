@@ -29,6 +29,7 @@ export function BarraNavegacao({
         estilos.container,
         {
           paddingTop: insets.top + espacamento.sm,
+          paddingBottom: mostrarPesquisa ? espacamento.md : espacamento.sm,
         },
       ]}
     >
@@ -82,7 +83,6 @@ const estilos = StyleSheet.create({
   container: {
     backgroundColor: cores.verdeEscuro,
     paddingHorizontal: espacamento.md,
-    paddingBottom: espacamento.md,
     borderBottomLeftRadius: raio.lg,
     borderBottomRightRadius: raio.lg,
   },
