@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { type Href, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../src/context/authContext";
 import { cores } from "../src/constants/colors";
@@ -38,12 +38,10 @@ export default function Configuracoes() {
           />
         </View>
 
-        <View style={estilos.item}>
+        <Pressable style={estilos.item} onPress={() => router.push("/sobre-nos" as Href)}>
           <Text style={estilos.itemTexto}>Sobre o MERUEM.INC</Text>
-        </View>
-        <Text style={estilos.sobreTexto}>
-          Aplicativo para acompanhamento de eventos e torneios de TCG.
-        </Text>
+          <Text style={estilos.itemSeta}>›</Text>
+        </Pressable>
 
         <Pressable style={estilos.botaoSair} onPress={sair}>
           <Text style={estilos.botaoSairTexto}>SAIR DA CONTA</Text>
@@ -86,13 +84,6 @@ const estilos = StyleSheet.create({
   itemSeta: {
     color: cores.textoSecundario,
     fontSize: tamanhoFonte.lg,
-  },
-  sobreTexto: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.sm,
-    marginTop: -espacamento.xs,
-    marginBottom: espacamento.md,
-    paddingHorizontal: espacamento.xs,
   },
   botaoSair: {
     borderWidth: 2,

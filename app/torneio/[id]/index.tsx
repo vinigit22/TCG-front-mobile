@@ -7,6 +7,7 @@ import { Loja } from "../../../src/components/Loja";
 import { Vagas } from "../../../src/components/Vagas";
 import { buscarTorneioMock } from "../../../src/mocks/torneios";
 import { useAuth } from "../../../src/context/authContext";
+import { useInscricoes } from "../../../src/context/inscricoesContext";
 import { cores } from "../../../src/constants/colors";
 import { espacamento, raio, tamanhoFonte } from "../../../src/constants/theme";
 import { BotaoVoltar } from "../../../src/components/BotaoVoltar";
@@ -16,7 +17,8 @@ export default function DetalhesTorneio() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { autenticado } = useAuth();
-  const [inscrito, setInscrito] = useState(false);
+  const { estaInscrito, inscrever } = useInscricoes();
+  const inscrito = estaInscrito(Number(id));
   const [carregandoInscricao, setCarregandoInscricao] = useState(false);
 
   const torneio = buscarTorneioMock(Number(id));
@@ -54,8 +56,7 @@ export default function DetalhesTorneio() {
 
     setCarregandoInscricao(true);
     setTimeout(() => {
-      setInscrito(true);
-      setCarregandoInscricao(false);
+      inscrever(Number(id)).finally(() => setCarregandoInscricao(false));
     }, 600);
   }
 

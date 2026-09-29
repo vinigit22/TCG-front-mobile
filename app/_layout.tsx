@@ -4,13 +4,15 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "../src/context/authContext";
 import { NotificacaoProvider } from "../src/context/notificacaoContext";
+import { InscricoesProvider } from "../src/context/inscricoesContext";
 import { cores } from "../src/constants/colors";
 
 export default function LayoutRaiz() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <NotificacaoProvider>
+        <InscricoesProvider>
+          <NotificacaoProvider>
           <StatusBar style="light" />
 
           <Stack
@@ -28,6 +30,7 @@ export default function LayoutRaiz() {
             <Stack.Screen name="meus-torneios" />
             <Stack.Screen name="deck" />
             <Stack.Screen name="configuracoes" />
+            <Stack.Screen name="sobre-nos" />
             <Stack.Screen name="editar-perfil" />
             <Stack.Screen
               name="login"
@@ -43,6 +46,7 @@ export default function LayoutRaiz() {
             />
           </Stack>
         </NotificacaoProvider>
+        </InscricoesProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
