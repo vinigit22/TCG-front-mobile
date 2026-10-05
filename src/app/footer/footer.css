@@ -1,0 +1,13 @@
+.footer{
+ background-color:rgb(56	50	102);
+ border-top: 2px solid #b990f5;
+ padding: 30px 20px;
+ min-height: 0vh;
+ flex:1;
+}
+
+.logo-footer{
+    width: 100px;
+    height: auto;
+    float: right;
+}

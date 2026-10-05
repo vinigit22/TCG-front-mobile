@@ -1,0 +1,20 @@
+.apresentacao-container{
+  font-family: "Bungee", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: large; 
+  background-color: rgb(187	210	165); 
+}  
+
+.titulo-apresentacao{
+    color: rgb(	61	95	83);
+    text-align: center;
+}
+.texto-apresentacao{
+    color: rgb(	61	95	83);
+    text-align: center;
+}
+.textocor{
+    color: rgb(	160	87	150);
+    text-align: center;
+}
