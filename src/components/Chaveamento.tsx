@@ -38,25 +38,29 @@ export function Chaveamento({ partidas }: ChaveamentoProps) {
       {rodadas.map(([numero, rodada]) => (
         <View key={numero} style={estilos.coluna}>
           <Text style={estilos.nomeRodada}>{rodada.nome}</Text>
-          {rodada.partidas.map((partida) => (
+          {rodada.partidas.map((partida) => {
+            // Sem vencedor definido nenhum lado é destacado (antes, dois lados vazios "empatavam" como vencedor)
+            const venceuA = !!partida.vencedor && partida.vencedor === partida.jogadorA;
+            const venceuB = !!partida.vencedor && partida.vencedor === partida.jogadorB;
+            // Lado vazio numa partida já finalizada = avanço sem adversário (bye)
+            const ladoVazio = partida.status === "FINALIZADA" ? "Sem adversário" : "A definir";
+
+            return (
             <View key={partida.partidaId} style={estilos.partida}>
               <Text style={estilos.mesa}>Mesa {partida.mesa}</Text>
-              <Text
-                style={[estilos.jogador, partida.vencedor === partida.jogadorA && estilos.vencedor]}
-              >
-                {partida.jogadorA ?? "A definir"}
+              <Text style={[estilos.jogador, venceuA && estilos.vencedor]}>
+                {partida.jogadorA ?? ladoVazio}
               </Text>
               <Text style={estilos.versus}>vs</Text>
-              <Text
-                style={[estilos.jogador, partida.vencedor === partida.jogadorB && estilos.vencedor]}
-              >
-                {partida.jogadorB ?? "A definir"}
+              <Text style={[estilos.jogador, venceuB && estilos.vencedor]}>
+                {partida.jogadorB ?? ladoVazio}
               </Text>
               <Text style={[estilos.status, { color: coresPorStatus[partida.status] }]}>
                 {partida.status.replace("_", " ")}
               </Text>
             </View>
-          ))}
+            );
+          })}
         </View>
       ))}
     </ScrollView>

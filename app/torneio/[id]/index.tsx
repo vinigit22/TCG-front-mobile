@@ -1,27 +1,56 @@
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { InscricaoButton, EstadoInscricao } from "../../../src/components/Inscricaobutton";
 import { Loja } from "../../../src/components/Loja";
 import { Vagas } from "../../../src/components/Vagas";
-import { buscarTorneioMock } from "../../../src/mocks/torneios";
 import { useAuth } from "../../../src/context/authContext";
 import { useInscricoes } from "../../../src/context/inscricoesContext";
+import { useTorneio } from "../../../src/hooks/useTorneio";
+import { Inscricao, Torneio } from "../../../src/models/types";
+import { mensagemDeErro } from "../../../src/services/erros";
+import { formatarMoeda } from "../../../src/utils/formatadores";
 import { cores } from "../../../src/constants/colors";
 import { espacamento, raio, tamanhoFonte } from "../../../src/constants/theme";
 import { BotaoVoltar } from "../../../src/components/BotaoVoltar";
+
+// Mesmas regras do backend: só entra com inscrições abertas; torneio cheio leva à lista de espera
+function calcularEstadoInscricao(
+  torneio: Torneio,
+  inscricao: Inscricao | undefined,
+  autenticado: boolean,
+  carregando: boolean
+): EstadoInscricao {
+  if (carregando) return "CARREGANDO";
+  if (inscricao) return inscricao.status === "LISTA_ESPERA" ? "LISTA_ESPERA" : "INSCRITO";
+  if (torneio.status !== "INSCRICOES_ABERTAS") return "ENCERRADO";
+  if (!autenticado) return "DESLOGADO";
+  if (torneio.vagasDisponiveis <= 0) return "ESGOTADO";
+  return "DISPONIVEL";
+}
 
 export default function DetalhesTorneio() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { autenticado } = useAuth();
-  const { estaInscrito, inscrever } = useInscricoes();
-  const inscrito = estaInscrito(Number(id));
+  const { inscricaoDoTorneio, inscrever } = useInscricoes();
+  const { torneio, carregando } = useTorneio(Number(id));
+  const inscricao = inscricaoDoTorneio(Number(id));
   const [carregandoInscricao, setCarregandoInscricao] = useState(false);
+  const [erroInscricao, setErroInscricao] = useState<string | null>(null);
 
-  const torneio = buscarTorneioMock(Number(id));
+  if (carregando) {
+    return (
+      <View style={estilos.container}>
+        <BotaoVoltar />
+        <View style={estilos.centralizado}>
+          <ActivityIndicator color={cores.verdeEscuro} size="large" />
+        </View>
+      </View>
+    );
+  }
 
   if (!torneio) {
     return (
@@ -42,25 +71,27 @@ export default function DetalhesTorneio() {
     data.getMinutes()
   ).padStart(2, "0")}`;
 
-  let estadoInscricao: EstadoInscricao = "DISPONIVEL";
-  if (!autenticado) estadoInscricao = "DESLOGADO";
-  else if (inscrito) estadoInscricao = "INSCRITO";
-  else if (torneio.vagasDisponiveis <= 0) estadoInscricao = "ESGOTADO";
-  if (carregandoInscricao) estadoInscricao = "CARREGANDO";
+  const estadoInscricao = calcularEstadoInscricao(torneio, inscricao, autenticado, carregandoInscricao);
 
-  function aoPressionarInscricao() {
+  async function aoPressionarInscricao() {
     if (!autenticado) {
       router.push("/login");
       return;
     }
+    if (!torneio) return;
 
+    setErroInscricao(null);
     setCarregandoInscricao(true);
-    setTimeout(() => {
-      inscrever(Number(id)).finally(() => setCarregandoInscricao(false));
-    }, 600);
+    try {
+      await inscrever(torneio);
+    } catch (e) {
+      setErroInscricao(mensagemDeErro(e, "Não foi possível concluir a inscrição."));
+    } finally {
+      setCarregandoInscricao(false);
+    }
   }
 
-  const mostrarChaveamento = torneio.status === "EM_ANDAMENTO" || torneio.status === "FINALIZADO";
+  const chaveamentoDisponivel = torneio.status === "EM_ANDAMENTO" || torneio.status === "FINALIZADO";
 
   return (
     <View style={estilos.container}>
@@ -72,7 +103,7 @@ export default function DetalhesTorneio() {
       >
         <Text style={estilos.jogo}>{torneio.jogo}</Text>
         <Text style={estilos.titulo}>{torneio.titulo}</Text>
-        <Loja nome={torneio.nomeLoja} />
+        <Loja nome={torneio.nomeLoja} verificada={torneio.lojaVerificada} />
 
         {torneio.descricao ? <Text style={estilos.descricao}>{torneio.descricao}</Text> : null}
 
@@ -88,7 +119,7 @@ export default function DetalhesTorneio() {
           {torneio.taxaInscricao > 0 ? (
             <View style={estilos.linha}>
               <Text style={estilos.rotulo}>Inscrição</Text>
-              <Text style={estilos.valor}>R$ {torneio.taxaInscricao.toFixed(2)}</Text>
+              <Text style={estilos.valor}>{formatarMoeda(torneio.taxaInscricao)}</Text>
             </View>
           ) : null}
           {torneio.premiacao ? (
@@ -104,14 +135,16 @@ export default function DetalhesTorneio() {
         </View>
 
         <InscricaoButton estado={estadoInscricao} aoPressionar={aoPressionarInscricao} />
+        {erroInscricao ? <Text style={estilos.erroInscricao}>{erroInscricao}</Text> : null}
 
-        {mostrarChaveamento ? (
+        {chaveamentoDisponivel ? (
           <Text style={estilos.linkChaveamento} onPress={() => router.push(`/torneio/${torneio.id}/chaveamento`)}>
             Ver chaveamento →
           </Text>
         ) : null}
 
-        {inscrito ? (
+        {/* A partida só existe depois que a chave é gerada */}
+        {inscricao && chaveamentoDisponivel ? (
           <Text
             style={estilos.linkChaveamento}
             onPress={() => router.push(`/torneio/${torneio.id}/confronto`)}
@@ -187,6 +220,12 @@ const estilos = StyleSheet.create({
     fontWeight: "700",
     flexShrink: 1,
     textAlign: "right",
+  },
+  erroInscricao: {
+    color: cores.erro,
+    fontSize: tamanhoFonte.sm,
+    marginTop: espacamento.sm,
+    textAlign: "center",
   },
   linkChaveamento: {
     color: cores.roxo,

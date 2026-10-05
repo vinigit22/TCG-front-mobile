@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Torneio } from "../models/types";
-import { torneiosMock } from "../mocks/torneios";
+import { torneioService } from "../services/torneioService";
 
 interface EstadoTorneios {
   torneios: Torneio[];
@@ -8,6 +8,7 @@ interface EstadoTorneios {
   erro: boolean;
 }
 
+// Vitrine de torneios (mock ou API, conforme configuracao.usarMockApi)
 export function useTorneios() {
   const [estado, setEstado] = useState<EstadoTorneios>({
     torneios: [],
@@ -17,17 +18,18 @@ export function useTorneios() {
 
   useEffect(() => {
     let ativo = true;
-    setEstado((atual) => ({ ...atual, carregando: true, erro: false }));
 
-    const tempo = setTimeout(() => {
-      if (ativo) {
-        setEstado({ torneios: torneiosMock, carregando: false, erro: false });
-      }
-    }, 350);
+    torneioService
+      .listar()
+      .then((torneios) => {
+        if (ativo) setEstado({ torneios, carregando: false, erro: false });
+      })
+      .catch(() => {
+        if (ativo) setEstado({ torneios: [], carregando: false, erro: true });
+      });
 
     return () => {
       ativo = false;
-      clearTimeout(tempo);
     };
   }, []);
 

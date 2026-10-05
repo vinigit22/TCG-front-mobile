@@ -6,6 +6,7 @@ import { cores } from "../constants/colors";
 import { espacamento, raio, tamanhoFonte } from "../constants/theme";
 import { useAuth } from "../context/authContext";
 import { AvatarPerfil } from "./AvatarPerfil";
+import { montarUrlImagem } from "../services/api";
 
 interface BarraNavegacaoProps {
   aoAbrirNotificacoes: () => void;
@@ -57,7 +58,7 @@ export function BarraNavegacao({ aoAbrirNotificacoes, aoAbrirPerfil, aoAbrirPesq
               {quantidadeNaoLidas > 0 ? <View style={estilos.marcador}><Text style={estilos.marcadorTexto}>{quantidadeNaoLidas > 9 ? "9+" : quantidadeNaoLidas}</Text></View> : null}
             </Pressable>
             <Pressable style={estilos.botaoIcone} onPress={aoAbrirPerfil} hitSlop={8} accessibilityLabel="Abrir perfil">
-              {usuario ? <AvatarPerfil foto={usuario.foto} nome={usuario.nickname ?? usuario.nome} tamanho={36} /> : <Ionicons name="person-outline" size={20} color={cores.textoClaro} />}
+              {usuario ? <AvatarPerfil foto={montarUrlImagem(usuario.imagemPerfil)} nome={usuario.nickname || usuario.nome} tamanho={36} /> : <Ionicons name="person-outline" size={20} color={cores.textoClaro} />}
             </Pressable>
           </View>
         </View>

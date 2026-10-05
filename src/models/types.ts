@@ -1,3 +1,6 @@
+// Tipos usados pelas telas. O JSON do backend tem outro formato (objetos aninhados, null em vez de
+// campo ausente): ele está em models/api.ts e é convertido para estes tipos em services/mapeadores.ts.
+
 export type TipoConta = "LOJA" | "JOGADOR" | "ADMIN";
 
 export interface Endereco {
@@ -14,14 +17,15 @@ export interface Endereco {
   referencia?: string;
 }
 
+// Conta logada no app. O app é só para jogadores; id = contaId no backend.
 export interface Usuario {
   id: number;
   email: string;
   tipo: TipoConta;
   nome: string;
-  nickname?: string;
+  nickname: string;
+  // Caminho devolvido pela API ("/uploads/...") ou URI local no modo mock. Exibir com montarUrlImagem().
   imagemPerfil?: string;
-  foto?: string;
 }
 
 export interface Jogador {
@@ -72,9 +76,12 @@ export interface Torneio {
   id: number;
   lojaId: number;
   nomeLoja: string;
+  lojaVerificada?: boolean;
   jogoId: number;
+  // Nome do jogo (na API vem em jogo.nome)
   jogo: string;
   formatoId?: number;
+  formato?: string;
   titulo: string;
   descricao?: string;
   imagem?: string;
@@ -103,20 +110,16 @@ export interface Inscricao {
   torneioId: number;
   jogadorId: number;
   status: StatusInscricao;
-  statusPagamento: StatusPagamento;
+  pagamentoStatus: StatusPagamento;
   seed?: number;
   inscritoEm: string;
+  checkInEm?: string;
+  canceladoEm?: string;
+  // A API devolve o torneio junto; no modo mock ele vem de src/mocks/torneios
+  torneio?: Torneio;
 }
 
 export type StatusRodada = "AGUARDANDO" | "EM_ANDAMENTO" | "ENCERRADA";
-
-export interface Rodada {
-  id: number;
-  torneioId: number;
-  numero: number;
-  nome: string;
-  status: StatusRodada;
-}
 
 export type StatusPartida = "AGUARDANDO" | "PRONTA" | "EM_ANDAMENTO" | "FINALIZADA";
 
@@ -128,21 +131,7 @@ export type ResultadoPartida =
   | "WO_B"
   | "DUPLO_NO_SHOW";
 
-export interface Partida {
-  id: number;
-  rodadaId: number;
-  mesa: number;
-  jogadorA?: string;
-  jogadorB?: string;
-  gamesA: number;
-  gamesB: number;
-  gamesEmpate: number;
-  status: StatusPartida;
-  resultado?: ResultadoPartida;
-  vencedor?: string;
-  horario?: string;
-}
-
+// Uma linha de GET /torneios/{id}/chaveamento. Os jogadores vêm pelo nickname.
 export interface Chaveamento {
   torneioId: number;
   rodada: number;
@@ -189,9 +178,11 @@ export interface Notificacao {
   eventoId?: number;
   partidaId?: number;
   lida: boolean;
+  lidaEm?: string;
   criadoEm: string;
 }
 
+// Deck: fora do escopo por enquanto (não existe no backend)
 export interface CartaDeck {
   id: number;
   nome: string;
@@ -208,8 +199,11 @@ export interface Deck {
   cartas?: CartaDeck[];
 }
 
+// Troféus do jogador (GET /jogadores/{id}/trofeus)
 export interface EstatisticasJogador {
   jogadorId: number;
+  nickname?: string;
+  nome?: string;
   ouro: number;
   prata: number;
   bronze: number;
@@ -221,6 +215,7 @@ export interface LoginRequest {
   senha: string;
 }
 
+// Mesmos campos obrigatórios de POST /auth/registro/jogador
 export interface CadastroRequest {
   nome: string;
   nickname: string;
@@ -231,4 +226,11 @@ export interface CadastroRequest {
 export interface AuthResponse {
   token: string;
   usuario: Usuario;
+}
+
+// Edição de perfil: novaFoto é a imagem escolhida no aparelho (vai por upload)
+export interface AtualizarPerfilDados {
+  nome: string;
+  nickname: string;
+  novaFoto?: { uri: string; mimeType?: string };
 }

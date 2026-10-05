@@ -3,7 +3,15 @@ import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 import { cores } from "../constants/colors";
 import { espacamento, raio, tamanhoFonte } from "../constants/theme";
 
-export type EstadoInscricao = "DESLOGADO" | "DISPONIVEL" | "ESGOTADO" | "INSCRITO" | "CARREGANDO";
+// ENCERRADO: o torneio não está com inscrições abertas (o backend recusaria a inscrição)
+export type EstadoInscricao =
+  | "DESLOGADO"
+  | "DISPONIVEL"
+  | "ESGOTADO"
+  | "INSCRITO"
+  | "LISTA_ESPERA"
+  | "ENCERRADO"
+  | "CARREGANDO";
 
 interface InscricaoButtonProps {
   estado: EstadoInscricao;
@@ -15,11 +23,15 @@ const rotulos: Record<EstadoInscricao, string> = {
   DISPONIVEL: "INSCREVER-SE",
   ESGOTADO: "ENTRAR NA LISTA DE ESPERA",
   INSCRITO: "VOCÊ ESTÁ INSCRITO",
+  LISTA_ESPERA: "VOCÊ ESTÁ NA LISTA DE ESPERA",
+  ENCERRADO: "INSCRIÇÕES FECHADAS",
   CARREGANDO: "AGUARDE",
 };
 
+const SEM_ACAO: EstadoInscricao[] = ["INSCRITO", "LISTA_ESPERA", "ENCERRADO", "CARREGANDO"];
+
 export function InscricaoButton({ estado, aoPressionar }: InscricaoButtonProps) {
-  const desabilitado = estado === "INSCRITO" || estado === "CARREGANDO";
+  const desabilitado = SEM_ACAO.includes(estado);
 
   return (
     <Pressable
@@ -27,7 +39,8 @@ export function InscricaoButton({ estado, aoPressionar }: InscricaoButtonProps) 
       onPress={aoPressionar}
       style={({ pressed }) => [
         estilos.botao,
-        estado === "INSCRITO" && estilos.botaoInscrito,
+        (estado === "INSCRITO" || estado === "LISTA_ESPERA") && estilos.botaoInscrito,
+        estado === "ENCERRADO" && estilos.botaoEncerrado,
         pressed && !desabilitado && estilos.botaoPressionado,
       ]}
     >
@@ -50,6 +63,9 @@ const estilos = StyleSheet.create({
   },
   botaoInscrito: {
     backgroundColor: cores.verdeEscuro,
+  },
+  botaoEncerrado: {
+    backgroundColor: cores.encerrado,
   },
   botaoPressionado: {
     opacity: 0.85,

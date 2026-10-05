@@ -1,8 +1,9 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { chaveamentoMock } from "../../../src/mocks/notificacoesEChaveamento";
+import { useAuth } from "../../../src/context/authContext";
+import { useChaveamento } from "../../../src/hooks/useChaveamento";
 import { cores } from "../../../src/constants/colors";
 import { BotaoVoltar } from "../../../src/components/BotaoVoltar";
 import { espacamento, raio, tamanhoFonte } from "../../../src/constants/theme";
@@ -17,37 +18,67 @@ const rotulosStatus: Record<string, string> = {
 export default function ConfrontoTorneio() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const partidas = chaveamentoMock.filter((partida) => partida.torneioId === Number(id));
-  const partidaAtual = partidas.find((partida) => partida.status !== "FINALIZADA") ?? partidas[0];
+  const { usuario } = useAuth();
+  const { partidas, carregando } = useChaveamento(Number(id));
 
-  if (!partidaAtual) {
+  // O chaveamento identifica os jogadores pelo nickname
+  const nickname = usuario?.nickname;
+  const minhasPartidas = nickname
+    ? partidas.filter((partida) => partida.jogadorA === nickname || partida.jogadorB === nickname)
+    : [];
+  // A partida atual é a primeira ainda em aberto; se todas terminaram, a última que o jogador disputou
+  const partidaAtual =
+    minhasPartidas.find((partida) => partida.status !== "FINALIZADA") ?? minhasPartidas[minhasPartidas.length - 1];
+
+  if (carregando || !partidaAtual) {
     return (
-      <View style={estilos.centralizado}>
-        <Text style={estilos.mensagem}>Você ainda não tem partidas neste torneio.</Text>
+      <View style={[estilos.container, { paddingBottom: insets.bottom + espacamento.lg }]}>
+        <BotaoVoltar />
+        <View style={estilos.centralizado}>
+          {carregando ? (
+            <ActivityIndicator color={cores.verdeEscuro} size="large" />
+          ) : (
+            <Text style={estilos.mensagem}>Você ainda não tem partidas neste torneio.</Text>
+          )}
+        </View>
       </View>
     );
   }
 
-  const adversario =
-    partidaAtual.jogadorA && partidaAtual.jogadorB
-      ? partidaAtual.jogadorA
-      : partidaAtual.jogadorA ?? partidaAtual.jogadorB ?? "A definir";
+  const souJogadorA = partidaAtual.jogadorA === nickname;
+  const adversario = souJogadorA ? partidaAtual.jogadorB : partidaAtual.jogadorA;
+  const finalizada = partidaAtual.status === "FINALIZADA";
+  const textoAdversario = adversario ?? (finalizada ? "Sem adversário (bye)" : "A definir");
+
+  let resultado: string | null = null;
+  if (finalizada && partidaAtual.vencedor) {
+    resultado = partidaAtual.vencedor === nickname ? "Vitória" : "Derrota";
+  }
 
   return (
-    
-    <View style={[estilos.container, { paddingTop: insets.top + espacamento.lg, paddingBottom: insets.bottom + espacamento.lg }]}>
+    <View style={[estilos.container, { paddingBottom: insets.bottom + espacamento.lg }]}>
       <BotaoVoltar />
       <Text style={estilos.rodada}>{partidaAtual.nomeRodada.toUpperCase()}</Text>
 
       <View style={estilos.card}>
         <Text style={estilos.rotulo}>SEU ADVERSÁRIO</Text>
-        <Text style={estilos.valor}>{adversario}</Text>
+        <Text style={estilos.valor}>{textoAdversario}</Text>
 
         <Text style={estilos.rotulo}>MESA</Text>
         <Text style={estilos.valor}>{partidaAtual.mesa}</Text>
 
         <Text style={estilos.rotulo}>STATUS</Text>
         <Text style={estilos.status}>{rotulosStatus[partidaAtual.status]}</Text>
+
+        {resultado ? (
+          <>
+            <Text style={estilos.rotulo}>RESULTADO</Text>
+            <Text style={estilos.valor}>
+              {resultado} ({souJogadorA ? partidaAtual.gamesA : partidaAtual.gamesB} x{" "}
+              {souJogadorA ? partidaAtual.gamesB : partidaAtual.gamesA})
+            </Text>
+          </>
+        ) : null}
       </View>
     </View>
   );
@@ -57,13 +88,11 @@ const estilos = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: cores.fundo,
-    paddingHorizontal: espacamento.lg,
   },
   centralizado: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: cores.fundo,
     paddingHorizontal: espacamento.lg,
   },
   mensagem: {
@@ -83,7 +112,9 @@ const estilos = StyleSheet.create({
     borderRadius: raio.lg,
     borderWidth: 2,
     borderColor: cores.verdeEscuro,
+    marginHorizontal: espacamento.lg,
     paddingHorizontal: espacamento.lg,
+    paddingBottom: espacamento.md,
     gap: espacamento.xs,
   },
   rotulo: {

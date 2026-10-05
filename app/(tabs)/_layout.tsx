@@ -5,10 +5,12 @@ import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cores } from "../../src/constants/colors";
 import { useAuth } from "../../src/context/authContext";
+import { montarUrlImagem } from "../../src/services/api";
 
 function IconePerfilAba() {
   const { usuario } = useAuth();
-  if (usuario?.foto) return <Image source={{ uri: usuario.foto }} style={estilos.avatarAba} />;
+  const foto = montarUrlImagem(usuario?.imagemPerfil);
+  if (foto) return <Image source={{ uri: foto }} style={estilos.avatarAba} />;
   return <Ionicons name="person-outline" size={22} color={cores.fundoClaro} />;
 }
 

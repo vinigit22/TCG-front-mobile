@@ -1,8 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
+import { isAxiosError } from "axios";
 import api from "./api";
+import { mensagemDeErro } from "./erros";
+import { mapearPerfil, mapearUsuario } from "./mapeadores";
 import { configuracao } from "../constants/config";
 import { CHAVE_USUARIOS_MOCK } from "../constants/storage";
+import { LoginResponseApi, PerfilJogadorApi } from "../models/api";
 import { AuthResponse, CadastroRequest, LoginRequest, Usuario } from "../models/types";
 
 interface UsuarioMock extends Usuario {
@@ -10,7 +13,7 @@ interface UsuarioMock extends Usuario {
 }
 
 function criarTokenMock(): string {
-  // Token usado SOMENTE para o modo local. O backend real deverá retornar um JWT real.
+  // Token usado SOMENTE para o modo local. O backend real retorna um JWT.
   return `mock.jwt.${Date.now()}`;
 }
 
@@ -52,9 +55,7 @@ async function loginMock(dados: LoginRequest): Promise<AuthResponse> {
   );
 
   if (!usuario || usuario.senha !== dados.senha) {
-    const erro = new Error("Email ou senha inválidos");
-    Object.assign(erro, { response: { status: 401 } });
-    throw erro;
+    throw new Error("Email ou senha inválidos");
   }
 
   return respostaMock(usuario);
@@ -63,18 +64,21 @@ async function loginMock(dados: LoginRequest): Promise<AuthResponse> {
 async function cadastrarMock(dados: CadastroRequest): Promise<AuthResponse> {
   const usuarios = await obterUsuariosMock();
   const email = dados.email.trim().toLowerCase();
+  const nickname = dados.nickname.trim();
 
+  // Mesmas regras de unicidade do backend (mensagens iguais às do 409)
   if (usuarios.some((item) => item.email.toLowerCase() === email)) {
-    const erro = new Error("Este email já está cadastrado");
-    Object.assign(erro, { response: { status: 409 } });
-    throw erro;
+    throw new Error("Email já cadastrado");
+  }
+  if (usuarios.some((item) => item.nickname === nickname)) {
+    throw new Error("Nickname já cadastrado");
   }
 
   const proximoId = usuarios.reduce((maior, item) => Math.max(maior, item.id), 0) + 1;
   const novoUsuario: UsuarioMock = {
     id: proximoId,
     nome: dados.nome.trim(),
-    nickname: dados.nickname.trim(),
+    nickname,
     email,
     senha: dados.senha,
     tipo: "JOGADOR",
@@ -84,14 +88,25 @@ async function cadastrarMock(dados: CadastroRequest): Promise<AuthResponse> {
   return respostaMock(novoUsuario);
 }
 
+// O app é só para jogadores: contas de loja/admin recebem o token, mas ele é encerrado na hora
+async function recusarContaNaoJogador(resposta: LoginResponseApi): Promise<never> {
+  await api
+    .post("/auth/logout", null, { headers: { Authorization: `Bearer ${resposta.token}` } })
+    .catch(() => undefined);
+  throw new Error("Este app é exclusivo para jogadores. Contas de loja e de administrador não entram por aqui.");
+}
+
 export const authService = {
   async login(dados: LoginRequest): Promise<AuthResponse> {
     if (configuracao.usarMockApi) {
       return loginMock(dados);
     }
 
-    const { data } = await api.post<AuthResponse>("/auth/login", dados);
-    return data;
+    const { data } = await api.post<LoginResponseApi>("/auth/login", dados);
+    if (data.tipo !== "JOGADOR") {
+      return recusarContaNaoJogador(data);
+    }
+    return { token: data.token, usuario: mapearUsuario(data) };
   },
 
   async cadastrar(dados: CadastroRequest): Promise<AuthResponse> {
@@ -99,25 +114,38 @@ export const authService = {
       return cadastrarMock(dados);
     }
 
-    const { data } = await api.post<AuthResponse>("/auth/register", dados);
-    return data;
+    const { data } = await api.post<LoginResponseApi>("/auth/registro/jogador", dados);
+    return { token: data.token, usuario: mapearUsuario(data) };
+  },
+
+  // Encerra o token no backend (os outros aparelhos continuam logados). Falha de rede é ignorada:
+  // o app apaga a sessão local de qualquer forma.
+  async logout(): Promise<void> {
+    if (configuracao.usarMockApi) {
+      return;
+    }
+
+    await api.post("/auth/logout").catch(() => undefined);
+  },
+
+  // Confere se o token salvo ainda vale e traz o perfil atualizado. No modo mock devolve null (nada a conferir).
+  async buscarUsuarioLogado(): Promise<Usuario | null> {
+    if (configuracao.usarMockApi) {
+      return null;
+    }
+
+    const { data } = await api.get<PerfilJogadorApi>("/jogadores/me");
+    return mapearPerfil(data);
   },
 };
 
 export function mensagemErroAuth(error: unknown, acao: "login" | "cadastro") {
-  if (axios.isAxiosError(error)) {
-    if (error.response?.status === 401) return "Email ou senha inválidos";
-    if (error.response?.status === 409) return "Este email já está cadastrado";
-    if (!error.response) {
-      return "Não foi possível conectar ao servidor. Verifique se o backend está ativo.";
-    }
+  if (acao === "login" && isAxiosError(error) && error.response?.status === 401) {
+    return "Email ou senha inválidos";
   }
 
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return acao === "login"
-    ? "Não foi possível realizar o login"
-    : "Não foi possível concluir o cadastro";
+  return mensagemDeErro(
+    error,
+    acao === "login" ? "Não foi possível realizar o login" : "Não foi possível concluir o cadastro"
+  );
 }

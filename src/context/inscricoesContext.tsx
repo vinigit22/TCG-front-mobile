@@ -1,61 +1,116 @@
-import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "./authContext";
+import { Inscricao, Torneio } from "../models/types";
+import { inscricaoService } from "../services/inscricaoService";
 
 interface InscricoesContextDados {
-  torneioIds: number[];
+  // Inscrições que não foram canceladas, cada uma com o seu torneio
+  inscricoesAtivas: Inscricao[];
+  // Torneios dessas inscrições (vêm junto da inscrição, então aparecem mesmo fora da vitrine)
+  torneiosInscritos: Torneio[];
   carregandoInscricoes: boolean;
+  inscricaoDoTorneio: (torneioId: number) => Inscricao | undefined;
   estaInscrito: (torneioId: number) => boolean;
-  inscrever: (torneioId: number) => Promise<void>;
+  // Lançam erro com a mensagem do backend (ou do mock) para a tela mostrar
+  inscrever: (torneio: Torneio) => Promise<Inscricao>;
+  cancelar: (torneioId: number) => Promise<void>;
+  recarregar: () => Promise<void>;
+}
+
+// Lista carregada e de qual usuário ela é (ao trocar de conta, a lista antiga deixa de valer)
+interface Carregadas {
+  usuarioId: number;
+  inscricoes: Inscricao[];
 }
 
 const InscricoesContext = createContext<InscricoesContextDados>({} as InscricoesContextDados);
 
+function listarSemFalhar(usuarioId: number) {
+  return inscricaoService.listarMinhas(usuarioId).catch(() => [] as Inscricao[]);
+}
+
 export function InscricoesProvider({ children }: { children: ReactNode }) {
   const { usuario } = useAuth();
-  const [torneioIds, setTorneioIds] = useState<number[]>([]);
-  const [carregandoInscricoes, setCarregandoInscricoes] = useState(true);
+  const usuarioId = usuario?.id;
+  const [carregadas, setCarregadas] = useState<Carregadas | null>(null);
 
   useEffect(() => {
+    if (usuarioId === undefined) return;
+
     let ativo = true;
-    async function carregar() {
-      if (!usuario) {
-        if (ativo) {
-          setTorneioIds([]);
-          setCarregandoInscricoes(false);
-        }
-        return;
-      }
+    listarSemFalhar(usuarioId).then((inscricoes) => {
+      if (ativo) setCarregadas({ usuarioId, inscricoes });
+    });
 
-      setCarregandoInscricoes(true);
-      const chave = `@TCGTorneios:inscricoes:${usuario.id}`;
-      try {
-        const salvo = await AsyncStorage.getItem(chave);
-        if (ativo) setTorneioIds(salvo ? JSON.parse(salvo) : []);
-      } catch {
-        if (ativo) setTorneioIds([]);
-      } finally {
-        if (ativo) setCarregandoInscricoes(false);
-      }
+    return () => {
+      ativo = false;
+    };
+  }, [usuarioId]);
+
+  const recarregar = useCallback(async () => {
+    if (usuarioId === undefined) return;
+    const inscricoes = await listarSemFalhar(usuarioId);
+    setCarregadas({ usuarioId, inscricoes });
+  }, [usuarioId]);
+
+  const daContaAtual = usuarioId !== undefined && carregadas?.usuarioId === usuarioId;
+  const carregandoInscricoes = usuarioId !== undefined && !daContaAtual;
+
+  const inscricoesAtivas = useMemo(
+    () => (daContaAtual ? carregadas.inscricoes.filter((inscricao) => inscricao.status !== "CANCELADO") : []),
+    [daContaAtual, carregadas]
+  );
+
+  const torneiosInscritos = useMemo(
+    () =>
+      inscricoesAtivas
+        .map((inscricao) => inscricao.torneio)
+        .filter((torneio): torneio is Torneio => torneio !== undefined),
+    [inscricoesAtivas]
+  );
+
+  function inscricaoDoTorneio(torneioId: number) {
+    return inscricoesAtivas.find((inscricao) => inscricao.torneioId === torneioId);
+  }
+
+  function substituir(usuarioDaInscricao: number, nova: Inscricao) {
+    setCarregadas((atuais) => {
+      const anteriores = atuais?.usuarioId === usuarioDaInscricao ? atuais.inscricoes : [];
+      return {
+        usuarioId: usuarioDaInscricao,
+        inscricoes: [...anteriores.filter((item) => item.torneioId !== nova.torneioId), nova],
+      };
+    });
+  }
+
+  async function inscrever(torneio: Torneio) {
+    if (usuarioId === undefined) {
+      throw new Error("Entre na sua conta para se inscrever");
     }
-    carregar();
-    return () => { ativo = false; };
-  }, [usuario?.id]);
+    const nova = await inscricaoService.inscrever(usuarioId, torneio);
+    substituir(usuarioId, nova);
+    return nova;
+  }
 
-  async function inscrever(torneioId: number) {
-    if (!usuario || torneioIds.includes(torneioId)) return;
-    const atualizados = [...torneioIds, torneioId];
-    setTorneioIds(atualizados);
-    await AsyncStorage.setItem(`@TCGTorneios:inscricoes:${usuario.id}`, JSON.stringify(atualizados));
+  async function cancelar(torneioId: number) {
+    const inscricao = inscricaoDoTorneio(torneioId);
+    if (usuarioId === undefined || !inscricao) return;
+    substituir(usuarioId, await inscricaoService.cancelar(usuarioId, inscricao));
   }
 
   return (
-    <InscricoesContext.Provider value={{
-      torneioIds,
-      carregandoInscricoes,
-      estaInscrito: (torneioId) => torneioIds.includes(torneioId),
-      inscrever,
-    }}>
+    <InscricoesContext.Provider
+      value={{
+        inscricoesAtivas,
+        torneiosInscritos,
+        carregandoInscricoes,
+        inscricaoDoTorneio,
+        estaInscrito: (torneioId) => inscricaoDoTorneio(torneioId) !== undefined,
+        inscrever,
+        cancelar,
+        recarregar,
+      }}
+    >
       {children}
     </InscricoesContext.Provider>
   );

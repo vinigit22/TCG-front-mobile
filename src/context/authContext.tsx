@@ -1,8 +1,17 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AuthResponse, CadastroRequest, LoginRequest, Usuario } from "../models/types";
+import { isAxiosError } from "axios";
+import {
+  AtualizarPerfilDados,
+  AuthResponse,
+  CadastroRequest,
+  LoginRequest,
+  Usuario,
+} from "../models/types";
 import { CHAVE_TOKEN, CHAVE_USUARIO } from "../constants/storage";
+import { definirAoSessaoExpirar } from "../services/api";
 import { authService, mensagemErroAuth } from "../services/authService";
+import { jogadorService } from "../services/jogadorService";
 
 interface AuthContextDados {
   usuario: Usuario | null;
@@ -12,37 +21,72 @@ interface AuthContextDados {
   login: (dados: LoginRequest) => Promise<void>;
   cadastrar: (dados: CadastroRequest) => Promise<void>;
   logout: () => Promise<void>;
-  atualizarPerfil: (dados: Partial<Usuario>) => Promise<void>;
+  atualizarPerfil: (dados: AtualizarPerfilDados) => Promise<void>;
+  limparErro: () => void;
 }
 
 const AuthContext = createContext<AuthContextDados>({} as AuthContextDados);
+
+// Sessões salvas por versões antigas do app usavam "foto" no lugar de "imagemPerfil"
+function normalizarUsuarioSalvo(salvo: Usuario & { foto?: string }): Usuario {
+  const { foto, ...usuario } = salvo;
+  return { ...usuario, nickname: usuario.nickname ?? "", imagemPerfil: usuario.imagemPerfil ?? foto };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  useEffect(() => {
-    recuperarSessao();
+  const encerrarSessaoLocal = useCallback(async () => {
+    await AsyncStorage.multiRemove([CHAVE_TOKEN, CHAVE_USUARIO]);
+    setUsuario(null);
   }, []);
 
-  async function recuperarSessao() {
-    try {
-      const [tokenSalvo, usuarioSalvo] = await Promise.all([
-        AsyncStorage.getItem(CHAVE_TOKEN),
-        AsyncStorage.getItem(CHAVE_USUARIO),
-      ]);
+  // Token recusado pelo backend (401): a sessão local deixa de valer
+  useEffect(() => {
+    definirAoSessaoExpirar(() => {
+      encerrarSessaoLocal();
+    });
+    return () => definirAoSessaoExpirar(null);
+  }, [encerrarSessaoLocal]);
 
-      if (tokenSalvo && usuarioSalvo) {
-        setUsuario(JSON.parse(usuarioSalvo));
+  useEffect(() => {
+    async function recuperarSessao() {
+      try {
+        const [tokenSalvo, usuarioSalvo] = await Promise.all([
+          AsyncStorage.getItem(CHAVE_TOKEN),
+          AsyncStorage.getItem(CHAVE_USUARIO),
+        ]);
+
+        if (!tokenSalvo || !usuarioSalvo) {
+          return;
+        }
+
+        setUsuario(normalizarUsuarioSalvo(JSON.parse(usuarioSalvo)));
+
+        // Com a API ligada, confere o token e atualiza o perfil. Sem rede, mantém a sessão salva.
+        try {
+          const atualizado = await authService.buscarUsuarioLogado();
+          if (atualizado) {
+            await AsyncStorage.setItem(CHAVE_USUARIO, JSON.stringify(atualizado));
+            setUsuario(atualizado);
+          }
+        } catch (e) {
+          const status = isAxiosError(e) ? e.response?.status : undefined;
+          if (status === 401 || status === 403) {
+            await encerrarSessaoLocal();
+          }
+        }
+      } catch {
+        await encerrarSessaoLocal();
+      } finally {
+        setCarregando(false);
       }
-    } catch {
-      await AsyncStorage.multiRemove([CHAVE_TOKEN, CHAVE_USUARIO]);
-      setUsuario(null);
-    } finally {
-      setCarregando(false);
     }
-  }
+
+    recuperarSessao();
+  }, [encerrarSessaoLocal]);
 
   async function salvarSessao(resposta: AuthResponse) {
     await AsyncStorage.setItem(CHAVE_TOKEN, resposta.token);
@@ -56,8 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const resposta = await authService.login(dados);
       await salvarSessao(resposta);
     } catch (e) {
-      const mensagem = mensagemErroAuth(e, "login");
-      setErro(mensagem);
+      setErro(mensagemErroAuth(e, "login"));
       throw e;
     }
   }
@@ -68,24 +111,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const resposta = await authService.cadastrar(dados);
       await salvarSessao(resposta);
     } catch (e) {
-      const mensagem = mensagemErroAuth(e, "cadastro");
-      setErro(mensagem);
+      setErro(mensagemErroAuth(e, "cadastro"));
       throw e;
     }
   }
 
   async function logout() {
-    await AsyncStorage.multiRemove([CHAVE_TOKEN, CHAVE_USUARIO]);
-    setUsuario(null);
+    // Antes de apagar o token: o backend precisa dele para encerrar a sessão
+    await authService.logout();
+    await encerrarSessaoLocal();
     setErro(null);
   }
 
-  async function atualizarPerfil(dados: Partial<Usuario>) {
+  // Foto nova vai por upload; depois nome e nickname. Erros sobem para a tela mostrar.
+  async function atualizarPerfil(dados: AtualizarPerfilDados) {
     if (!usuario) return;
-    const atualizado = { ...usuario, ...dados };
+
+    let imagemPerfil = usuario.imagemPerfil;
+    if (dados.novaFoto) {
+      imagemPerfil = await jogadorService.enviarFoto(usuario.id, dados.novaFoto.uri, dados.novaFoto.mimeType);
+    }
+
+    const atualizado = await jogadorService.atualizarPerfil(
+      { ...usuario, imagemPerfil },
+      { nome: dados.nome, nickname: dados.nickname }
+    );
     await AsyncStorage.setItem(CHAVE_USUARIO, JSON.stringify(atualizado));
     setUsuario(atualizado);
   }
+
+  const limparErro = useCallback(() => setErro(null), []);
 
   return (
     <AuthContext.Provider
@@ -98,6 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         cadastrar,
         logout,
         atualizarPerfil,
+        limparErro,
       }}
     >
       {children}

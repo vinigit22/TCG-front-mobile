@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -20,7 +20,13 @@ import { BotaoVoltar } from "../src/components/BotaoVoltar";
 export default function Login() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { login, erro } = useAuth();
+  const { login, erro, limparErro } = useAuth();
+
+  // O erro fica no contexto: sem limpar, o erro de uma tentativa anterior (ou da outra tela) apareceria aqui
+  useEffect(() => {
+    limparErro();
+  }, [limparErro]);
+
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);

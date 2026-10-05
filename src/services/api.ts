@@ -1,10 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
-import { CHAVE_TOKEN, CHAVE_USUARIO } from "../constants/storage";
+import axios, { isAxiosError } from "axios";
+import { CHAVE_TOKEN } from "../constants/storage";
 import { configuracao } from "../constants/config";
 
-const ROTAS_PUBLICAS = ["/jogos", "/auth/login", "/auth/register"];
-
+// Cliente HTTP do TCGBackend. Os services só o usam com configuracao.usarMockApi = false.
 const api = axios.create({
   baseURL: configuracao.apiUrl,
   timeout: 10000,
@@ -13,29 +12,44 @@ const api = axios.create({
   },
 });
 
+// O backend identifica a conta só pelo JWT. As rotas públicas também aceitam o token,
+// então ele vai sempre que existir (a não ser que a chamada já traga um Authorization próprio).
 api.interceptors.request.use(async (config) => {
-  const url = config.url || "";
-  const ehRotaPublica = ROTAS_PUBLICAS.some((rota) => url.startsWith(rota));
-
-  if (!ehRotaPublica) {
+  if (!config.headers.Authorization) {
     const token = await AsyncStorage.getItem(CHAVE_TOKEN);
-    const usuario = await AsyncStorage.getItem(CHAVE_USUARIO);
-
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
-    if (usuario) {
-      try {
-        const usuarioParseado = JSON.parse(usuario) as { id: number };
-        config.headers["X-Usuario-Id"] = String(usuarioParseado.id);
-      } catch {
-        // Ignora uma sessão local inválida; o backend poderá responder 401.
-      }
-    }
   }
-
   return config;
 });
+
+let aoSessaoExpirar: (() => void) | null = null;
+
+// O AuthProvider registra aqui o que fazer quando o token deixa de valer
+// (expirou, logout em outro aparelho ou senha trocada): o backend responde 401.
+export function definirAoSessaoExpirar(callback: (() => void) | null) {
+  aoSessaoExpirar = callback;
+}
+
+api.interceptors.response.use(
+  (resposta) => resposta,
+  (erro) => {
+    const rotaDeAutenticacao = String(erro?.config?.url ?? "").startsWith("/auth/");
+    const enviouToken = Boolean(erro?.config?.headers?.Authorization);
+    if (isAxiosError(erro) && erro.response?.status === 401 && enviouToken && !rotaDeAutenticacao) {
+      aoSessaoExpirar?.();
+    }
+    return Promise.reject(erro);
+  }
+);
+
+// A API guarda imagens enviadas como caminho relativo ("/uploads/..."); no modo mock a imagem é uma
+// URI local (file://...). Devolve o endereço que o <Image> consegue abrir.
+export function montarUrlImagem(caminho?: string): string | undefined {
+  if (!caminho) return undefined;
+  if (caminho.startsWith("/")) return configuracao.apiUrl.replace(/\/$/, "") + caminho;
+  return caminho;
+}
 
 export default api;

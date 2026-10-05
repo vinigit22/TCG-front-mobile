@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { type Href, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../src/context/authContext";
+import { CHAVE_PREFERENCIA_PUSH } from "../src/constants/storage";
 import { cores } from "../src/constants/colors";
 import { espacamento, raio, sombra, tamanhoFonte } from "../src/constants/theme";
 import { BotaoVoltar } from "../src/components/BotaoVoltar";
@@ -12,6 +14,20 @@ export default function Configuracoes() {
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
   const [notificacoesAtivas, setNotificacoesAtivas] = useState(true);
+
+  // A escolha fica guardada no aparelho; o envio de push ainda não existe no backend
+  useEffect(() => {
+    AsyncStorage.getItem(CHAVE_PREFERENCIA_PUSH)
+      .then((valor) => {
+        if (valor !== null) setNotificacoesAtivas(valor === "true");
+      })
+      .catch(() => undefined);
+  }, []);
+
+  function alterarNotificacoes(valor: boolean) {
+    setNotificacoesAtivas(valor);
+    AsyncStorage.setItem(CHAVE_PREFERENCIA_PUSH, String(valor)).catch(() => undefined);
+  }
 
   async function sair() {
     await logout();
@@ -30,10 +46,13 @@ export default function Configuracoes() {
         </Pressable>
 
         <View style={estilos.item}>
-          <Text style={estilos.itemTexto}>Notificações push</Text>
+          <View>
+            <Text style={estilos.itemTexto}>Notificações push</Text>
+            <Text style={estilos.itemDetalhe}>Em breve</Text>
+          </View>
           <Switch
             value={notificacoesAtivas}
-            onValueChange={setNotificacoesAtivas}
+            onValueChange={alterarNotificacoes}
             trackColor={{ true: cores.magenta, false: cores.textoSecundario }}
           />
         </View>
@@ -80,6 +99,11 @@ const estilos = StyleSheet.create({
     color: cores.textoEscuro,
     fontSize: tamanhoFonte.md,
     fontWeight: "600",
+  },
+  itemDetalhe: {
+    color: cores.textoSecundario,
+    fontSize: tamanhoFonte.xs,
+    marginTop: 2,
   },
   itemSeta: {
     color: cores.textoSecundario,

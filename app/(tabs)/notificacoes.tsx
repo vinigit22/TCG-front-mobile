@@ -1,22 +1,26 @@
 import React from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NotificacaoItem } from "../../src/components/NotificacaoItem";
+import { useAuth } from "../../src/context/authContext";
 import { useNotificacoes } from "../../src/context/notificacaoContext";
+import { Notificacao } from "../../src/models/types";
 import { cores } from "../../src/constants/colors";
-import { espacamento, tamanhoFonte } from "../../src/constants/theme";
+import { espacamento, raio, tamanhoFonte } from "../../src/constants/theme";
 import { BotaoVoltar } from "../../src/components/BotaoVoltar";
 
 export default function Notificacoes() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { notificacoes, removerNotificacao } = useNotificacoes();
+  const { autenticado } = useAuth();
+  const { notificacoes, marcarComoLida } = useNotificacoes();
 
-  async function abrirNotificacao(
-    notificacao: (typeof notificacoes)[number]
-  ) {
-    await removerNotificacao(notificacao.id);
+  // Abrir marca como lida (como no backend); a notificação continua na lista
+  async function abrirNotificacao(notificacao: Notificacao) {
+    if (!notificacao.lida) {
+      await marcarComoLida(notificacao.id).catch(() => undefined);
+    }
 
     if (notificacao.torneioId) {
       router.push(`/torneio/${notificacao.torneioId}`);
@@ -36,7 +40,14 @@ export default function Notificacoes() {
 
       <Text style={estilos.titulo}>Notificações</Text>
 
-      {notificacoes.length === 0 ? (
+      {!autenticado ? (
+        <View style={estilos.centralizado}>
+          <Text style={estilos.mensagem}>Entre na sua conta para ver suas notificações.</Text>
+          <Pressable style={estilos.botaoEntrar} onPress={() => router.push("/login")}>
+            <Text style={estilos.botaoEntrarTexto}>ENTRAR</Text>
+          </Pressable>
+        </View>
+      ) : notificacoes.length === 0 ? (
         <View style={estilos.centralizado}>
           <Text style={estilos.mensagem}>
             Você não tem novas notificações.
@@ -86,5 +97,16 @@ const estilos = StyleSheet.create({
     color: cores.textoSecundario,
     fontSize: tamanhoFonte.md,
     textAlign: "center",
+  },
+  botaoEntrar: {
+    backgroundColor: cores.magenta,
+    borderRadius: raio.pill,
+    paddingVertical: espacamento.md,
+    paddingHorizontal: espacamento.xl,
+    marginTop: espacamento.lg,
+  },
+  botaoEntrarTexto: {
+    color: cores.textoClaro,
+    fontWeight: "800",
   },
 });

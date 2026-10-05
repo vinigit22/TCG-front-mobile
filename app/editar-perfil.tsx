@@ -12,37 +12,47 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "../src/context/authContext";
+import { Usuario } from "../src/models/types";
+import { montarUrlImagem } from "../src/services/api";
+import { mensagemDeErro } from "../src/services/erros";
 import { cores } from "../src/constants/colors";
 import { espacamento, raio, tamanhoFonte } from "../src/constants/theme";
 import { BotaoVoltar } from "../src/components/BotaoVoltar";
 
+// Mesmos limites do backend (UsuarioJogadorRequest)
+const MAXIMO_NOME = 150;
+const MAXIMO_NICKNAME = 50;
+
 export default function EditarPerfil() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { usuario, autenticado, carregando, atualizarPerfil } = useAuth();
-
-  const [nome, setNome] = useState("");
-  const [nickname, setNickname] = useState("");
-  const [foto, setFoto] = useState<string | undefined>(undefined);
-  const [salvando, setSalvando] = useState(false);
+  const { usuario, autenticado, carregando } = useAuth();
 
   useEffect(() => {
     if (!carregando && !autenticado) {
       router.replace("/login");
     }
-  }, [autenticado, carregando]);
-
-  useEffect(() => {
-    if (usuario) {
-      setNome(usuario.nome);
-      setNickname(usuario.nickname ?? "");
-      setFoto(usuario.foto);
-    }
-  }, [usuario]);
+  }, [autenticado, carregando, router]);
 
   if (carregando || !autenticado || !usuario) {
     return <View style={estilos.container} />;
   }
+
+  // O formulário só monta com o usuário carregado: os campos começam com os dados dele
+  return <FormularioPerfil key={usuario.id} usuario={usuario} />;
+}
+
+function FormularioPerfil({ usuario }: { usuario: Usuario }) {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { atualizarPerfil } = useAuth();
+
+  const [nome, setNome] = useState(usuario.nome);
+  const [nickname, setNickname] = useState(usuario.nickname);
+  // foto: o que aparece na tela; novaFoto: imagem escolhida agora, que vai por upload ao salvar
+  const [foto, setFoto] = useState<string | undefined>(() => montarUrlImagem(usuario.imagemPerfil));
+  const [novaFoto, setNovaFoto] = useState<{ uri: string; mimeType?: string } | undefined>(undefined);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   async function trocarFoto() {
     const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -56,15 +66,32 @@ export default function EditarPerfil() {
     });
 
     if (!resultado.canceled && resultado.assets.length > 0) {
-      setFoto(resultado.assets[0].uri);
+      const imagem = resultado.assets[0];
+      setFoto(imagem.uri);
+      setNovaFoto({ uri: imagem.uri, mimeType: imagem.mimeType ?? undefined });
     }
   }
 
   async function salvar() {
+    const nomeLimpo = nome.trim();
+    const nicknameLimpo = nickname.trim();
+
+    if (!nomeLimpo || !nicknameLimpo) {
+      setErro("Preencha nome e nickname.");
+      return;
+    }
+    if (nomeLimpo.length > MAXIMO_NOME || nicknameLimpo.length > MAXIMO_NICKNAME) {
+      setErro(`O nome pode ter até ${MAXIMO_NOME} caracteres e o nickname até ${MAXIMO_NICKNAME}.`);
+      return;
+    }
+
+    setErro(null);
     setSalvando(true);
     try {
-      await atualizarPerfil({ nome: nome.trim(), nickname: nickname.trim(), foto });
+      await atualizarPerfil({ nome: nomeLimpo, nickname: nicknameLimpo, novaFoto });
       router.back();
+    } catch (e) {
+      setErro(mensagemDeErro(e, "Não foi possível salvar o perfil."));
     } finally {
       setSalvando(false);
     }
@@ -82,7 +109,7 @@ export default function EditarPerfil() {
           ) : (
             <View style={estilos.avatarPlaceholder}>
               <Text style={estilos.avatarPlaceholderTexto}>
-                {(nickname || nome).slice(0, 2).toUpperCase()}
+                {(nickname || nome).trim().slice(0, 2).toUpperCase() || "?"}
               </Text>
             </View>
           )}
@@ -98,6 +125,8 @@ export default function EditarPerfil() {
           <Text style={estilos.rotulo}>Nickname</Text>
           <TextInput style={estilos.input} value={nickname} onChangeText={setNickname} autoCapitalize="none" placeholderTextColor={cores.textoSecundario} />
         </View>
+
+        {erro ? <Text style={estilos.erro}>{erro}</Text> : null}
 
         <Pressable style={estilos.botaoSalvar} onPress={salvar} disabled={salvando}>
           <Text style={estilos.botaoSalvarTexto}>{salvando ? "SALVANDO..." : "SALVAR"}</Text>
@@ -169,6 +198,11 @@ const estilos = StyleSheet.create({
     paddingVertical: espacamento.sm,
     color: cores.textoEscuro,
     fontSize: tamanhoFonte.md,
+  },
+  erro: {
+    color: cores.erro,
+    fontSize: tamanhoFonte.sm,
+    textAlign: "center",
   },
   botaoSalvar: {
     width: "100%",

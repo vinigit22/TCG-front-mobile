@@ -1,3 +1,4 @@
+// IDs de jogo iguais aos do seed do backend (data.sql): 1 Magic, 2 Pokémon, 3 Yu-Gi-Oh!, 4 One Piece, 5 Digimon
 import { Torneio } from "../models/types";
 
 export const torneiosMock: Torneio[] = [
@@ -65,7 +66,7 @@ export const torneiosMock: Torneio[] = [
     id: 5,
     lojaId: 2,
     nomeLoja: "Arena Central",
-    jogoId: 5,
+    jogoId: 1,
     jogo: "Magic: The Gathering",
     titulo: "Commander Night",
     descricao: "Mesa casual de Commander com premios para participantes.",
@@ -80,7 +81,7 @@ export const torneiosMock: Torneio[] = [
     id: 6,
     lojaId: 3,
     nomeLoja: "Meeple Games",
-    jogoId: 6,
+    jogoId: 6, // só existe no mock: o seed do backend não tem Flesh and Blood
     jogo: "Flesh and Blood",
     titulo: "Armory de Outubro",
     descricao: "Evento Armory semanal para todos os niveis de jogadores.",

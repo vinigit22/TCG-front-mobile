@@ -1,86 +1,104 @@
-import React, {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import { useAuth } from "./authContext";
 import { Notificacao } from "../models/types";
-import { notificacoesMock } from "../mocks/notificacoesEChaveamento";
-
-const CHAVE_NOTIFICACOES = "@meruem/notificacoes";
+import { notificacaoService } from "../services/notificacaoService";
 
 interface NotificacaoContextDados {
+  // Notificações da conta logada (vazio sem login: no backend elas exigem token)
   notificacoes: Notificacao[];
   quantidadeNaoLidas: number;
+  carregando: boolean;
+  marcarComoLida: (id: number) => Promise<void>;
+  marcarTodasComoLidas: () => Promise<void>;
   removerNotificacao: (id: number) => Promise<void>;
-  limparNotificacoes: () => Promise<void>;
+  recarregar: () => Promise<void>;
+}
+
+// Lista carregada e de qual usuário ela é (ao trocar de conta, a lista antiga deixa de valer)
+interface Carregadas {
+  usuarioId: number;
+  notificacoes: Notificacao[];
 }
 
 const NotificacaoContext = createContext<NotificacaoContextDados>(
   {} as NotificacaoContextDados
 );
 
+function listarSemFalhar(usuarioId: number) {
+  return notificacaoService.listar(usuarioId).catch(() => [] as Notificacao[]);
+}
+
 export function NotificacaoProvider({ children }: { children: ReactNode }) {
-  const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
+  const { usuario } = useAuth();
+  const usuarioId = usuario?.id;
+  const [carregadas, setCarregadas] = useState<Carregadas | null>(null);
 
   useEffect(() => {
-    carregarNotificacoes();
-  }, []);
+    if (usuarioId === undefined) return;
 
-  async function carregarNotificacoes() {
-    try {
-      const salvas = await AsyncStorage.getItem(CHAVE_NOTIFICACOES);
+    let ativo = true;
+    listarSemFalhar(usuarioId).then((notificacoes) => {
+      if (ativo) setCarregadas({ usuarioId, notificacoes });
+    });
 
-      if (salvas) {
-        setNotificacoes(JSON.parse(salvas));
-        return;
-      }
+    return () => {
+      ativo = false;
+    };
+  }, [usuarioId]);
 
-      await AsyncStorage.setItem(
-        CHAVE_NOTIFICACOES,
-        JSON.stringify(notificacoesMock)
-      );
+  const recarregar = useCallback(async () => {
+    if (usuarioId === undefined) return;
+    const notificacoes = await listarSemFalhar(usuarioId);
+    setCarregadas({ usuarioId, notificacoes });
+  }, [usuarioId]);
 
-      setNotificacoes(notificacoesMock);
-    } catch {
-      setNotificacoes(notificacoesMock);
-    }
+  const daContaAtual = usuarioId !== undefined && carregadas?.usuarioId === usuarioId;
+  const notificacoes = daContaAtual ? carregadas.notificacoes : [];
+  const carregando = usuarioId !== undefined && !daContaAtual;
+
+  // Aplica uma mudança na lista já carregada da conta atual
+  function alterarLista(alteracao: (lista: Notificacao[]) => Notificacao[]) {
+    setCarregadas((atuais) =>
+      atuais && atuais.usuarioId === usuarioId
+        ? { ...atuais, notificacoes: alteracao(atuais.notificacoes) }
+        : atuais
+    );
   }
 
-  async function salvarNotificacoes(lista: Notificacao[]) {
-    await AsyncStorage.setItem(
-      CHAVE_NOTIFICACOES,
-      JSON.stringify(lista)
+  async function marcarComoLida(id: number) {
+    if (usuarioId === undefined) return;
+    await notificacaoService.marcarComoLida(usuarioId, id);
+    const agora = new Date().toISOString();
+    alterarLista((lista) =>
+      lista.map((item) => (item.id === id && !item.lida ? { ...item, lida: true, lidaEm: agora } : item))
     );
+  }
 
-    setNotificacoes(lista);
+  async function marcarTodasComoLidas() {
+    if (usuarioId === undefined) return;
+    await notificacaoService.marcarTodasComoLidas(usuarioId);
+    const agora = new Date().toISOString();
+    alterarLista((lista) => lista.map((item) => (item.lida ? item : { ...item, lida: true, lidaEm: agora })));
   }
 
   async function removerNotificacao(id: number) {
-    const novasNotificacoes = notificacoes.filter(
-      (notificacao) => notificacao.id !== id
-    );
-
-    await salvarNotificacoes(novasNotificacoes);
+    if (usuarioId === undefined) return;
+    await notificacaoService.remover(usuarioId, id);
+    alterarLista((lista) => lista.filter((item) => item.id !== id));
   }
 
-  async function limparNotificacoes() {
-    await salvarNotificacoes([]);
-  }
-
-  const quantidadeNaoLidas = notificacoes.filter(
-    (notificacao) => !notificacao.lida
-  ).length;
+  const quantidadeNaoLidas = notificacoes.filter((notificacao) => !notificacao.lida).length;
 
   return (
     <NotificacaoContext.Provider
       value={{
         notificacoes,
         quantidadeNaoLidas,
+        carregando,
+        marcarComoLida,
+        marcarTodasComoLidas,
         removerNotificacao,
-        limparNotificacoes,
+        recarregar,
       }}
     >
       {children}

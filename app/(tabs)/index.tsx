@@ -1,6 +1,7 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Animated, StyleSheet, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { setStatusBarStyle } from "expo-status-bar";
 import { BarraNavegacao } from "../../src/components/barraNavegacao";
 import { TorneioCard } from "../../src/components/torneioCard";
 import { useTorneios } from "../../src/hooks/useTorneios";
@@ -16,7 +17,16 @@ export default function Home() {
   const [pesquisaAberta, setPesquisaAberta] = useState(false);
   const [termoPesquisa, setTermoPesquisa] = useState("");
   const [alturaCabecalho, setAlturaCabecalho] = useState(80);
-  const deslocamentoRolagem = useRef(new Animated.Value(0)).current;
+  // Valor animado criado uma vez (useState em vez de ref: o valor é lido durante o render)
+  const [deslocamentoRolagem] = useState(() => new Animated.Value(0));
+
+  // O cabeçalho da Home é escuro: aqui a barra de status usa ícones claros (nas outras telas, escuros)
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle("light");
+      return () => setStatusBarStyle("dark");
+    }, [])
+  );
 
   const torneiosFiltrados = useMemo(() => {
     const termo = termoPesquisa.trim().toLocaleLowerCase();

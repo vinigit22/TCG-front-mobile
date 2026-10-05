@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../src/context/authContext";
+import { montarUrlImagem } from "../../src/services/api";
 import { cores } from "../../src/constants/colors";
 import { espacamento, raio, sombra, tamanhoFonte } from "../../src/constants/theme";
 
@@ -25,6 +26,10 @@ export default function Perfil() {
     );
   }
 
+  const foto = montarUrlImagem(usuario.imagemPerfil);
+  // "||" e não "??": nickname vazio também cai para o nome
+  const iniciais = (usuario.nickname || usuario.nome || "?").trim().slice(0, 2).toUpperCase() || "?";
+
   return (
     <ScrollView
       style={estilos.container}
@@ -35,13 +40,11 @@ export default function Perfil() {
       showsVerticalScrollIndicator={false}
     >
       <Pressable onPress={() => router.push("/editar-perfil")} style={estilos.avatarToque}>
-        {usuario.foto ? (
-          <Image source={{ uri: usuario.foto }} style={estilos.avatarImagem} />
+        {foto ? (
+          <Image source={{ uri: foto }} style={estilos.avatarImagem} />
         ) : (
           <View style={estilos.avatar}>
-            <Text style={estilos.avatarTexto}>
-              {(usuario.nickname ?? usuario.nome).slice(0, 2).toUpperCase()}
-            </Text>
+            <Text style={estilos.avatarTexto}>{iniciais}</Text>
           </View>
         )}
         <View style={estilos.avatarEditarSelo}>

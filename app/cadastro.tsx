@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -22,7 +22,13 @@ const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export default function Cadastro() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { cadastrar, erro } = useAuth();
+  const { cadastrar, erro, limparErro } = useAuth();
+
+  // O erro fica no contexto: sem limpar, o erro de uma tentativa anterior (ou da outra tela) apareceria aqui
+  useEffect(() => {
+    limparErro();
+  }, [limparErro]);
+
   const [nome, setNome] = useState("");
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");

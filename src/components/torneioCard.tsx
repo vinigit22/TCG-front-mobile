@@ -43,7 +43,7 @@ export function TorneioCard({ torneio, aoPressionar }: TorneioCardProps) {
       </View>
 
       <Text style={estilos.titulo}>{torneio.titulo}</Text>
-      <Loja nome={torneio.nomeLoja} />
+      <Loja nome={torneio.nomeLoja} verificada={torneio.lojaVerificada} />
 
       <View style={estilos.linhaInfo}>
         <Text style={estilos.info}>{data}</Text>

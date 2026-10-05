@@ -13,7 +13,8 @@ export default function LayoutRaiz() {
       <AuthProvider>
         <InscricoesProvider>
           <NotificacaoProvider>
-          <StatusBar style="light" />
+          {/* Ícones escuros sobre o fundo claro; a Home troca para claros por causa do cabeçalho escuro */}
+          <StatusBar style="dark" />
 
           <Stack
             screenOptions={{

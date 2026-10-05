@@ -1,50 +1,50 @@
-# Welcome to your Expo app 👋
+# TCG Torneios — app mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App (Expo / React Native) para jogadores encontrarem torneios de card game, se inscreverem e acompanharem a chave. Lojas e administradores não usam o app.
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Como rodar
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Na saída do Expo dá para abrir no Expo Go, num emulador Android, no simulador iOS ou no navegador.
 
-## Learn more
+## Dados: mock ou API
 
-To learn more about developing your project with Expo, look at the following resources:
+Por padrão o app usa os dados de `src/mocks` (e o AsyncStorage), sem precisar do backend. Para usar o [TCGBackend](../TCGBackend), copie `.env.example` para `.env`, defina `EXPO_PUBLIC_USE_MOCK_API=false` e o endereço da API em `EXPO_PUBLIC_API_URL`, e reinicie o `npx expo start`.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+| Onde o app roda | `EXPO_PUBLIC_API_URL` |
+|---|---|
+| Navegador ou simulador iOS | `http://localhost:8080` |
+| Emulador Android | `http://10.0.2.2:8080` |
+| Celular físico | `http://<IP da máquina na rede>:8080` |
 
-## Join the community
+As telas não sabem de onde vêm os dados: cada service em `src/services` tem o caminho do mock e o da API, escolhido por `configuracao.usarMockApi` (`src/constants/config.ts`).
 
-Join our community of developers creating universal apps.
+## Estrutura
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```
+app/                 telas (expo-router)
+src/
+├── services/        chamadas à API (ou aos mocks): auth, torneios, inscrições, notificações, jogador
+│   ├── api.ts         cliente HTTP, token JWT e montarUrlImagem()
+│   ├── mapeadores.ts  JSON do backend -> tipos das telas
+│   └── erros.ts       mensagem de erro para o usuário (campo "detail" do backend)
+├── models/
+│   ├── types.ts       tipos usados pelas telas
+│   └── api.ts         formato exato do JSON do backend
+├── context/         sessão, inscrições e notificações
+├── hooks/           carregamento de torneios e chaveamento
+└── mocks/           dados do modo mock
+```
+
+Conta do modo mock: `teste@meruem.com` / `123456`.
+
+## Verificações
+
+```bash
+npx tsc --noEmit
+npm run lint
+```
