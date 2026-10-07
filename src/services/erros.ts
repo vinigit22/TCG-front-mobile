@@ -2,7 +2,7 @@ import { isAxiosError } from "axios";
 import { ProblemDetailApi } from "../models/api";
 
 // Mensagem para o usuário a partir de um erro da API (corpo ProblemDetail do backend, com a mensagem
-// em "detail"), de rede, ou dos mocks (Error comum com a mensagem pronta).
+// em "detail") ou de rede.
 export function mensagemDeErro(erro: unknown, padrao: string): string {
   if (isAxiosError(erro)) {
     if (!erro.response) {

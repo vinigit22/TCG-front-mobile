@@ -11,7 +11,7 @@ interface InscricoesContextDados {
   carregandoInscricoes: boolean;
   inscricaoDoTorneio: (torneioId: number) => Inscricao | undefined;
   estaInscrito: (torneioId: number) => boolean;
-  // Lançam erro com a mensagem do backend (ou do mock) para a tela mostrar
+  // Lançam erro com a mensagem do backend para a tela mostrar
   inscrever: (torneio: Torneio) => Promise<Inscricao>;
   cancelar: (torneioId: number) => Promise<void>;
   recarregar: () => Promise<void>;

@@ -24,7 +24,7 @@ export interface Usuario {
   tipo: TipoConta;
   nome: string;
   nickname: string;
-  // Caminho devolvido pela API ("/uploads/...") ou URI local no modo mock. Exibir com montarUrlImagem().
+  // Caminho devolvido pela API ("/uploads/..."). Exibir com montarUrlImagem().
   imagemPerfil?: string;
 }
 
@@ -115,7 +115,7 @@ export interface Inscricao {
   inscritoEm: string;
   checkInEm?: string;
   canceladoEm?: string;
-  // A API devolve o torneio junto; no modo mock ele vem de src/mocks/torneios
+  // A API devolve o torneio junto.
   torneio?: Torneio;
 }
 
@@ -180,23 +180,6 @@ export interface Notificacao {
   lida: boolean;
   lidaEm?: string;
   criadoEm: string;
-}
-
-// Deck: fora do escopo por enquanto (não existe no backend)
-export interface CartaDeck {
-  id: number;
-  nome: string;
-  quantidade: number;
-  imagem?: string;
-}
-
-export interface Deck {
-  id: number;
-  jogadorId: number;
-  nome: string;
-  jogoId: number;
-  principal: boolean;
-  cartas?: CartaDeck[];
 }
 
 // Troféus do jogador (GET /jogadores/{id}/trofeus)

@@ -8,7 +8,7 @@ interface EstadoTorneios {
   erro: boolean;
 }
 
-// Vitrine de torneios (mock ou API, conforme configuracao.usarMockApi)
+// Vitrine de torneios
 export function useTorneios() {
   const [estado, setEstado] = useState<EstadoTorneios>({
     torneios: [],
