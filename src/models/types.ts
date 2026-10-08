@@ -215,5 +215,6 @@ export interface AuthResponse {
 export interface AtualizarPerfilDados {
   nome: string;
   nickname: string;
+  bio?: string;
   novaFoto?: { uri: string; mimeType?: string };
 }

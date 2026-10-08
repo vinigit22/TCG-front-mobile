@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cores } from "../constants/colors";
-import { espacamento, raio, tamanhoFonte } from "../constants/theme";
+import { espacamento, fontes, raio, tamanhoFonte } from "../constants/theme";
 import { useAuth } from "../context/authContext";
 import { AvatarPerfil } from "./AvatarPerfil";
 import { montarUrlImagem } from "../services/api";
@@ -71,7 +71,7 @@ const estilos = StyleSheet.create({
   container: { backgroundColor: cores.verdeEscuro, paddingHorizontal: espacamento.md, borderBottomLeftRadius: raio.lg, borderBottomRightRadius: raio.lg },
   linhaSuperior: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", minHeight: 40 },
   linhaPesquisa: { flexDirection: "row", alignItems: "center", minHeight: 40, gap: espacamento.sm },
-  logo: { color: cores.magenta, fontWeight: "900", fontSize: tamanhoFonte.lg, letterSpacing: 1, flex: 1, marginRight: espacamento.sm },
+  logo: { color: cores.magenta, fontFamily: fontes.marca, fontSize: tamanhoFonte.lg, letterSpacing: 1.5, flex: 1, marginRight: espacamento.sm },
   acoes: { flexDirection: "row", gap: espacamento.sm },
   botaoIcone: { width: 36, height: 36, borderRadius: raio.pill, backgroundColor: cores.roxo, alignItems: "center", justifyContent: "center" },
   pesquisa: { flex: 1, color: cores.textoClaro, fontSize: tamanhoFonte.md, paddingVertical: 0 },

@@ -110,9 +110,9 @@ const estilos = StyleSheet.create({
     fontSize: tamanhoFonte.lg,
   },
   botaoSair: {
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: cores.erro,
-    borderRadius: raio.pill,
+    borderRadius: raio.md,
     paddingVertical: espacamento.sm,
     alignItems: "center",
     marginTop: espacamento.lg,

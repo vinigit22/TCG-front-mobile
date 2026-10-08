@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../src/context/authContext";
 import { cores } from "../src/constants/colors";
-import { espacamento, raio, tamanhoFonte } from "../src/constants/theme";
+import { espacamento, fontes, raio, tamanhoFonte } from "../src/constants/theme";
 import { BotaoVoltar } from "../src/components/BotaoVoltar";
 
 export default function Login() {
@@ -118,9 +118,10 @@ const estilos = StyleSheet.create({
     flexGrow: 1,
   },
   titulo: {
-    color: cores.magenta,
+    color: cores.roxo,
+    fontFamily: fontes.marca,
     fontSize: tamanhoFonte.xxl,
-    fontWeight: "900",
+    letterSpacing: 1.5,
     textAlign: "center",
   },
   subtitulo: {
@@ -156,7 +157,7 @@ const estilos = StyleSheet.create({
   },
   botao: {
     backgroundColor: cores.roxo,
-    borderRadius: raio.pill,
+    borderRadius: raio.md,
     paddingVertical: espacamento.md,
     alignItems: "center",
     marginTop: espacamento.sm,

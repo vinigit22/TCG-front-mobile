@@ -99,8 +99,8 @@ const estilos = StyleSheet.create({
     textAlign: "center",
   },
   botaoEntrar: {
-    backgroundColor: cores.magenta,
-    borderRadius: raio.pill,
+    backgroundColor: cores.roxo,
+    borderRadius: raio.md,
     paddingVertical: espacamento.md,
     paddingHorizontal: espacamento.xl,
     marginTop: espacamento.lg,

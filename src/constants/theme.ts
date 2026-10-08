@@ -1,4 +1,3 @@
-import { Platform } from "react-native";
 import { cores } from "./colors";
 
 export const espacamento = {
@@ -10,16 +9,21 @@ export const espacamento = {
   xxl: 48,
 };
 
+// Alinhado ao design system web: sm=8, md=12, lg=16
 export const raio = {
-  sm: 6,
+  sm: 8,
   md: 12,
-  lg: 20,
+  lg: 16,
   pill: 999,
 };
 
+// Fontes carregadas via @expo-google-fonts no _layout
 export const fontes = {
-  titulo: Platform.select({ ios: "System", android: "sans-serif-condensed", default: "System" }),
-  corpo: Platform.select({ ios: "System", android: "sans-serif", default: "System" }),
+  marca: "Bungee_400Regular",
+  corpo: "PlusJakartaSans_400Regular",
+  corpoMedio: "PlusJakartaSans_600SemiBold",
+  corpoBold: "PlusJakartaSans_700Bold",
+  corpoExtraBold: "PlusJakartaSans_800ExtraBold",
 };
 
 export const tamanhoFonte = {
@@ -32,11 +36,11 @@ export const tamanhoFonte = {
 };
 
 export const sombra = {
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 3 },
-  shadowOpacity: 0.15,
-  shadowRadius: 6,
-  elevation: 4,
+  shadowColor: "#1b1830",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.08,
+  shadowRadius: 8,
+  elevation: 3,
 };
 
 export const tema = {

@@ -64,8 +64,8 @@ const estilos = StyleSheet.create({
   card: {
     backgroundColor: cores.branco,
     borderRadius: raio.lg,
-    borderWidth: 2,
-    borderColor: cores.verdeEscuro,
+    borderWidth: 1,
+    borderColor: cores.borda,
     padding: espacamento.md,
     marginBottom: espacamento.md,
     ...sombra,
@@ -115,7 +115,7 @@ const estilos = StyleSheet.create({
     backgroundColor: cores.roxo,
     paddingVertical: espacamento.sm,
     paddingHorizontal: espacamento.md,
-    borderRadius: raio.pill,
+    borderRadius: raio.md,
   },
   textoBotao: {
     color: cores.textoClaro,

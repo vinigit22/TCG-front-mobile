@@ -1,23 +1,39 @@
+// TopDeck — paleta alinhada ao design system web (roxo + verde-menta + neutros tinta)
 export const cores = {
-  fundo: "#BFDDA0",
-  fundoClaro: "#D7E9C1",
-  verdeEscuro: "#2F4A3A",
-  verdeEscuroClaro: "#3D5F4A",
-  roxo: "#372A5E",
-  roxoClaro: "#4C3B7D",
-  magenta: "#D1399A",
-  magentaEscuro: "#A82C7A",
-  branco: "#F7F7EF",
-  offWhite: "#EFEFE3",
-  textoEscuro: "#1E2A21",
-  textoClaro: "#F7F7EF",
-  textoSecundario: "#5A6B5E",
-  borda: "#243A2D",
-  sucesso: "#3D8B4C",
-  alerta: "#C97A1B",
-  erro: "#B23434",
-  disponivel: "#3D8B4C",
-  esgotado: "#B23434",
-  emAndamento: "#C97A1B",
-  encerrado: "#5A6B5E",
+  // Fundo de página
+  fundo: "#f8f7fb",
+  fundoClaro: "#f1f0f6",
+
+  // Cabeçalho escuro (antes verde-escuro, agora roxo-900)
+  verdeEscuro: "#1c1340",
+  verdeEscuroClaro: "#291c5c",
+
+  // Cor primária — roxo
+  roxo: "#5034b4",
+  roxoClaro: "#6c4ce0",
+
+  // Cor de acento / CTA — verde-menta (substitui magenta)
+  magenta: "#34cf96",
+  magentaEscuro: "#13a679",
+
+  // Superfícies
+  branco: "#ffffff",
+  offWhite: "#f1f0f6",
+
+  // Texto
+  textoEscuro: "#1b1830",
+  textoClaro: "#ffffff",
+  textoSecundario: "#5d5878",
+
+  // Bordas (muito mais suaves)
+  borda: "#e1dfeb",
+
+  // Estados
+  sucesso: "#13a679",
+  alerta: "#eda100",
+  erro: "#e5484d",
+  disponivel: "#13a679",
+  esgotado: "#e5484d",
+  emAndamento: "#eda100",
+  encerrado: "#767191",
 } as const;

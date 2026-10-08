@@ -57,7 +57,7 @@ const estilos = StyleSheet.create({
   },
   botaoAdicionar: {
     backgroundColor: cores.magenta,
-    borderRadius: raio.pill,
+    borderRadius: raio.md,
     paddingVertical: espacamento.xs,
     paddingHorizontal: espacamento.md,
     opacity: 0.5,

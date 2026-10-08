@@ -23,6 +23,15 @@ EXPO_PUBLIC_API_URL=http://192.168.3.3:8080
 
 O aplicativo consome exclusivamente a API: autenticação, torneios, chaveamento, inscrições, notificações, perfil, fotos e troféus.
 
+## Design system
+
+Identidade visual alinhada ao front-web (TopDeck):
+
+- **Paleta:** roxo (`#5034b4`) como cor primária, verde-menta (`#34cf96`) como acento de ação, neutros tinta sobre fundo claro (`#f8f7fb`). Definida em `src/constants/colors.ts`.
+- **Tipografia:** Plus Jakarta Sans (corpo) e Bungee (marca/logo), carregadas via `@expo-google-fonts`. Referências em `src/constants/theme.ts` (objeto `fontes`).
+- **Bordas:** raios suaves alinhados ao web — sm 8 / md 12 / lg 16. Bordas de cartão em `1px` com cor `#e1dfeb` (tinta-200), sem borda grossa escura.
+- **Sombras:** sutis, com `shadowColor: #1b1830` e opacidade 8%.
+
 ## Estrutura
 
 ```text

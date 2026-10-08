@@ -31,13 +31,18 @@ export const jogadorService = {
     return data.imagemPerfil ?? undefined;
   },
 
-  async atualizarPerfil(usuario: Usuario, dados: { nome: string; nickname: string }): Promise<Usuario> {
+  async buscarBio(): Promise<string> {
+    const { data } = await api.get<PerfilJogadorApi>("/jogadores/me");
+    return data.bio ?? "";
+  },
+
+  async atualizarPerfil(usuario: Usuario, dados: { nome: string; nickname: string; bio?: string }): Promise<Usuario> {
     const { data: atual } = await api.get<PerfilJogadorApi>("/jogadores/me");
     const corpo: JogadorRequestApi = {
       nome: dados.nome,
       nickname: dados.nickname,
       imagemPerfil: atual.imagemPerfil,
-      bio: atual.bio,
+      bio: dados.bio !== undefined ? (dados.bio.trim() || null) : atual.bio,
       dataNascimento: atual.dataNascimento,
       cidade: atual.cidade,
       estado: atual.estado,

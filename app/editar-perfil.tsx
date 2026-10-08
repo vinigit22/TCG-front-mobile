@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
@@ -14,30 +15,26 @@ import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "../src/context/authContext";
 import { Usuario } from "../src/models/types";
 import { montarUrlImagem } from "../src/services/api";
+import { jogadorService } from "../src/services/jogadorService";
 import { mensagemDeErro } from "../src/services/erros";
 import { cores } from "../src/constants/colors";
 import { espacamento, raio, tamanhoFonte } from "../src/constants/theme";
 import { BotaoVoltar } from "../src/components/BotaoVoltar";
 
-// Mesmos limites do backend (UsuarioJogadorRequest)
 const MAXIMO_NOME = 150;
 const MAXIMO_NICKNAME = 50;
+const MAXIMO_BIO = 300;
 
 export default function EditarPerfil() {
   const router = useRouter();
   const { usuario, autenticado, carregando } = useAuth();
 
   useEffect(() => {
-    if (!carregando && !autenticado) {
-      router.replace("/login");
-    }
+    if (!carregando && !autenticado) router.replace("/login");
   }, [autenticado, carregando, router]);
 
-  if (carregando || !autenticado || !usuario) {
-    return <View style={estilos.container} />;
-  }
+  if (carregando || !autenticado || !usuario) return <View style={estilos.container} />;
 
-  // O formulário só monta com o usuário carregado: os campos começam com os dados dele
   return <FormularioPerfil key={usuario.id} usuario={usuario} />;
 }
 
@@ -48,11 +45,16 @@ function FormularioPerfil({ usuario }: { usuario: Usuario }) {
 
   const [nome, setNome] = useState(usuario.nome);
   const [nickname, setNickname] = useState(usuario.nickname);
-  // foto: o que aparece na tela; novaFoto: imagem escolhida agora, que vai por upload ao salvar
+  const [bio, setBio] = useState("");
   const [foto, setFoto] = useState<string | undefined>(() => montarUrlImagem(usuario.imagemPerfil));
   const [novaFoto, setNovaFoto] = useState<{ uri: string; mimeType?: string } | undefined>(undefined);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+
+  // Pré-preenche bio com o valor atual da API
+  useEffect(() => {
+    jogadorService.buscarBio().then(setBio).catch(() => undefined);
+  }, []);
 
   async function trocarFoto() {
     const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -81,14 +83,14 @@ function FormularioPerfil({ usuario }: { usuario: Usuario }) {
       return;
     }
     if (nomeLimpo.length > MAXIMO_NOME || nicknameLimpo.length > MAXIMO_NICKNAME) {
-      setErro(`O nome pode ter até ${MAXIMO_NOME} caracteres e o nickname até ${MAXIMO_NICKNAME}.`);
+      setErro(`Nome até ${MAXIMO_NOME} caracteres, nickname até ${MAXIMO_NICKNAME}.`);
       return;
     }
 
     setErro(null);
     setSalvando(true);
     try {
-      await atualizarPerfil({ nome: nomeLimpo, nickname: nicknameLimpo, novaFoto });
+      await atualizarPerfil({ nome: nomeLimpo, nickname: nicknameLimpo, bio, novaFoto });
       router.back();
     } catch (e) {
       setErro(mensagemDeErro(e, "Não foi possível salvar o perfil."));
@@ -118,18 +120,49 @@ function FormularioPerfil({ usuario }: { usuario: Usuario }) {
 
         <View style={estilos.campo}>
           <Text style={estilos.rotulo}>Nome</Text>
-          <TextInput style={estilos.input} value={nome} onChangeText={setNome} placeholderTextColor={cores.textoSecundario} />
+          <TextInput
+            style={estilos.input}
+            value={nome}
+            onChangeText={setNome}
+            placeholderTextColor={cores.textoSecundario}
+          />
         </View>
 
         <View style={estilos.campo}>
           <Text style={estilos.rotulo}>Nickname</Text>
-          <TextInput style={estilos.input} value={nickname} onChangeText={setNickname} autoCapitalize="none" placeholderTextColor={cores.textoSecundario} />
+          <TextInput
+            style={estilos.input}
+            value={nickname}
+            onChangeText={setNickname}
+            autoCapitalize="none"
+            placeholderTextColor={cores.textoSecundario}
+          />
+        </View>
+
+        <View style={estilos.campo}>
+          <Text style={estilos.rotulo}>
+            Bio <Text style={estilos.rotuloOpcional}>(opcional)</Text>
+          </Text>
+          <TextInput
+            style={[estilos.input, estilos.inputBio]}
+            value={bio}
+            onChangeText={(t) => setBio(t.slice(0, MAXIMO_BIO))}
+            placeholder="Fale um pouco sobre você..."
+            placeholderTextColor={cores.textoSecundario}
+            multiline
+            textAlignVertical="top"
+          />
+          <Text style={estilos.contador}>{bio.length}/{MAXIMO_BIO}</Text>
         </View>
 
         {erro ? <Text style={estilos.erro}>{erro}</Text> : null}
 
         <Pressable style={estilos.botaoSalvar} onPress={salvar} disabled={salvando}>
-          <Text style={estilos.botaoSalvarTexto}>{salvando ? "SALVANDO..." : "SALVAR"}</Text>
+          {salvando ? (
+            <ActivityIndicator color={cores.textoClaro} />
+          ) : (
+            <Text style={estilos.botaoSalvarTexto}>SALVAR</Text>
+          )}
         </Pressable>
       </ScrollView>
     </View>
@@ -143,10 +176,11 @@ const estilos = StyleSheet.create({
   },
   conteudo: {
     paddingHorizontal: espacamento.lg,
+    paddingBottom: espacamento.xl,
     alignItems: "center",
   },
   titulo: {
-    color: cores.verdeEscuro,
+    color: cores.textoEscuro,
     fontSize: tamanhoFonte.xl,
     fontWeight: "900",
     marginBottom: espacamento.lg,
@@ -174,7 +208,7 @@ const estilos = StyleSheet.create({
     fontWeight: "900",
   },
   trocarFotoTexto: {
-    color: cores.magenta,
+    color: cores.roxo,
     fontWeight: "700",
     fontSize: tamanhoFonte.sm,
     marginTop: espacamento.sm,
@@ -189,6 +223,10 @@ const estilos = StyleSheet.create({
     fontWeight: "700",
     marginBottom: espacamento.xs,
   },
+  rotuloOpcional: {
+    color: cores.textoSecundario,
+    fontWeight: "500",
+  },
   input: {
     backgroundColor: cores.branco,
     borderRadius: raio.md,
@@ -199,15 +237,26 @@ const estilos = StyleSheet.create({
     color: cores.textoEscuro,
     fontSize: tamanhoFonte.md,
   },
+  inputBio: {
+    minHeight: 88,
+    paddingTop: espacamento.sm,
+  },
+  contador: {
+    color: cores.textoSecundario,
+    fontSize: tamanhoFonte.xs,
+    textAlign: "right",
+    marginTop: 4,
+  },
   erro: {
     color: cores.erro,
     fontSize: tamanhoFonte.sm,
     textAlign: "center",
+    marginBottom: espacamento.sm,
   },
   botaoSalvar: {
     width: "100%",
     backgroundColor: cores.roxo,
-    borderRadius: raio.pill,
+    borderRadius: raio.md,
     paddingVertical: espacamento.md,
     alignItems: "center",
     marginTop: espacamento.md,

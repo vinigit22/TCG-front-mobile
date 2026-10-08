@@ -198,8 +198,8 @@ const estilos = StyleSheet.create({
   card: {
     backgroundColor: cores.branco,
     borderRadius: raio.lg,
-    borderWidth: 2,
-    borderColor: cores.verdeEscuro,
+    borderWidth: 1,
+    borderColor: cores.borda,
     padding: espacamento.md,
     marginVertical: espacamento.lg,
     gap: espacamento.sm,

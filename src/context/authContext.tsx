@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const atualizado = await jogadorService.atualizarPerfil(
       { ...usuario, imagemPerfil },
-      { nome: dados.nome, nickname: dados.nickname }
+      { nome: dados.nome, nickname: dados.nickname, bio: dados.bio }
     );
     await AsyncStorage.setItem(CHAVE_USUARIO, JSON.stringify(atualizado));
     setUsuario(atualizado);

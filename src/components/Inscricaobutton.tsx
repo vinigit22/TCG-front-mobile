@@ -56,7 +56,7 @@ export function InscricaoButton({ estado, aoPressionar }: InscricaoButtonProps) 
 const estilos = StyleSheet.create({
   botao: {
     backgroundColor: cores.magenta,
-    borderRadius: raio.pill,
+    borderRadius: raio.md,
     paddingVertical: espacamento.md,
     alignItems: "center",
     justifyContent: "center",
