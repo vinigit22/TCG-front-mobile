@@ -158,11 +158,40 @@ export interface TorneioResultado {
   premioRecebido?: string;
 }
 
+export type TipoEvento =
+  | "TROCA"
+  | "CONFRATERNIZACAO"
+  | "PROMOCAO"
+  | "LANCAMENTO"
+  | "CASUAL"
+  | "OUTRO";
+
+export type StatusEvento =
+  | "RASCUNHO"
+  | "PUBLICADO"
+  | "EM_ANDAMENTO"
+  | "ENCERRADO"
+  | "CANCELADO";
+
+export interface Evento {
+  id: number;
+  lojaId: number;
+  nomeLoja?: string;
+  titulo: string;
+  descricao?: string;
+  imagem?: string;
+  tipo: TipoEvento;
+  vagasMax?: number;
+  dataInicio: string;
+  status: StatusEvento;
+}
+
 export type TipoNotificacao =
   | "INSCRICAO_CONFIRMADA"
   | "TORNEIO_INICIADO"
   | "RODADA_INICIADA"
   | "PAREAMENTO"
+  | "CHECK_IN_SOLICITADO"
   | "RESULTADO_REGISTRADO"
   | "TORNEIO_FINALIZADO"
   | "EVENTO_ATUALIZADO"

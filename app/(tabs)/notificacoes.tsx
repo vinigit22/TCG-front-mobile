@@ -22,6 +22,12 @@ export default function Notificacoes() {
       await marcarComoLida(notificacao.id).catch(() => undefined);
     }
 
+    // Check-in: abre diretamente a tela da partida
+    if (notificacao.tipo === "CHECK_IN_SOLICITADO" && notificacao.partidaId) {
+      router.push(`/check-in/${notificacao.partidaId}` as never);
+      return;
+    }
+
     if (notificacao.torneioId) {
       router.push(`/torneio/${notificacao.torneioId}`);
     }

@@ -50,6 +50,10 @@ export function TorneioCard({ torneio, aoPressionar }: TorneioCardProps) {
         <Text style={estilos.info}>{horario}</Text>
       </View>
 
+      <Text style={estilos.premiacao}>
+        {torneio.premiacao ? `🏆 ${torneio.premiacao}` : "Sem premiação"}
+      </Text>
+
       <View style={estilos.rodape}>
         <Vagas vagasMax={torneio.vagasMax} vagasDisponiveis={torneio.vagasDisponiveis} />
         <Pressable style={estilos.botao} onPress={() => aoPressionar(torneio)}>
@@ -104,6 +108,11 @@ const estilos = StyleSheet.create({
   info: {
     color: cores.textoSecundario,
     fontSize: tamanhoFonte.sm,
+  },
+  premiacao: {
+    color: cores.textoSecundario,
+    fontSize: tamanhoFonte.xs,
+    marginBottom: espacamento.xs,
   },
   rodape: {
     flexDirection: "row",

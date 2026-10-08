@@ -44,6 +44,41 @@ src/
 └── components/      componentes visuais reutilizáveis
 ```
 
+## Telas e navegação
+
+### Abas principais
+
+| Aba | Arquivo | Descrição |
+|---|---|---|
+| Descobrir | `app/(tabs)/index.tsx` | Vitrine pública de torneios abertos e em andamento |
+| Meus Torneios | `app/(tabs)/torneios.tsx` | Torneios em que o jogador está inscrito |
+| Eventos | `app/(tabs)/eventos.tsx` | Eventos publicados ou em andamento (troca, promoção, etc.) |
+| Avisos | `app/(tabs)/notificacoes.tsx` | Notificações do jogador; toque em `CHECK_IN_SOLICITADO` abre o cronômetro |
+| Perfil | `app/(tabs)/perfil.tsx` | Foto, nickname, bio, edição de dados e troféus ganhos |
+
+### Telas extras
+
+| Tela | Rota | Descrição |
+|---|---|---|
+| Detalhe de torneio | `/torneio/[id]` | Inscrição, chave, placar |
+| Login / Cadastro | `/login`, `/cadastro` | Autenticação JWT |
+| Check-in de partida | `/check-in/[id]` | Cronômetro de 5 minutos + confirmação de presença |
+
+## Check-in de partida
+
+Quando a loja aciona **Convocar** no painel web, o backend define uma janela de 5 minutos e envia a notificação `CHECK_IN_SOLICITADO` para os dois jogadores.
+
+1. O jogador recebe o aviso na aba **Avisos** e toca nele.
+2. O app abre `/check-in/[id]` com um cronômetro regressivo.
+3. A tela faz polling a cada 5 s em `GET /partidas/{id}` para atualizar o status dos dois jogadores em tempo real.
+4. O jogador toca em **CONFIRMAR PRESENÇA** (`POST /partidas/{id}/check-in`).
+5. Quando ambos confirmam, a loja pode iniciar a partida normalmente.
+6. Se o prazo expirar antes da confirmação, a tela exibe "Prazo expirado" e orienta o jogador a contatar a loja.
+
+## Premiação nos cartões de torneio
+
+O componente `TorneioCard` exibe o campo `premiacao` quando preenchido. Se estiver vazio, mostra **"Sem premiação"**. O valor só é definido pela loja ao final do torneio na aba Resultados do painel web.
+
 ## Verificações
 
 ```bash
