@@ -2,6 +2,7 @@ import {
   ChaveamentoApi,
   EnderecoApi,
   InscricaoApi,
+  LojaApi,
   LoginResponseApi,
   NotificacaoApi,
   PerfilJogadorApi,
@@ -13,12 +14,13 @@ import {
   Endereco,
   EstatisticasJogador,
   Inscricao,
+  Loja,
   Notificacao,
   Torneio,
   Usuario,
 } from "../models/types";
 
-// Conversão do JSON do backend (models/api.ts) para os tipos das telas (models/types.ts)
+// ConversÃ£o do JSON do backend (models/api.ts) para os tipos das telas (models/types.ts)
 
 function opcional<T>(valor: T | null | undefined): T | undefined {
   return valor ?? undefined;
@@ -62,8 +64,22 @@ export function mapearEndereco(api: EnderecoApi): Endereco {
   };
 }
 
+export function mapearLoja(api: LojaApi): Loja {
+  return {
+    contaId: api.contaId,
+    nome: api.nome,
+    slug: api.slug,
+    descricao: opcional(api.descricao),
+    imagemPerfil: opcional(api.imagemPerfil),
+    imagemBanner: opcional(api.imagemBanner),
+    telefone: opcional(api.telefone),
+    endereco: api.endereco ? mapearEndereco(api.endereco) : undefined,
+    verificada: api.verificada,
+  };
+}
+
 export function mapearTorneio(api: TorneioApi): Torneio {
-  // Sem endereço próprio, o torneio acontece na loja
+  // Sem endereÃ§o prÃ³prio, o torneio acontece na loja
   const endereco = api.endereco ?? api.loja.endereco;
 
   return {

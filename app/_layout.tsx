@@ -38,7 +38,7 @@ export default function LayoutRaiz() {
       <AuthProvider>
         <InscricoesProvider>
           <NotificacaoProvider>
-            {/* Home troca para ícones claros por causa do cabeçalho escuro */}
+            {/* Home troca para ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­cones claros por causa do cabeÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§alho escuro */}
             <StatusBar style="dark" />
             <Stack
               screenOptions={{
@@ -50,6 +50,8 @@ export default function LayoutRaiz() {
             >
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="torneio/[id]/index" />
+              <Stack.Screen name="loja/[id]" />
+              <Stack.Screen name="evento/[id]" />
               <Stack.Screen name="torneio/[id]/chaveamento" />
               <Stack.Screen name="torneio/[id]/confronto" />
               <Stack.Screen name="meus-torneios" />

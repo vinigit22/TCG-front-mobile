@@ -20,8 +20,8 @@ export default function LayoutAbas() {
 
   return (
     <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: cores.magenta, tabBarInactiveTintColor: cores.fundoClaro, tabBarStyle: { backgroundColor: cores.roxo, borderTopWidth: 0, height: alturaBase + insets.bottom, paddingBottom: Math.max(insets.bottom, 8), paddingTop: 7 }, tabBarLabelStyle: { fontSize: 10, fontWeight: "700" } }}>
-      <Tabs.Screen name="index" options={{ title: "Descobrir", tabBarIcon: ({ color }) => <Ionicons name="search-outline" size={22} color={color} /> }} />
-      <Tabs.Screen name="torneios" options={{ title: "Meus Torneios", tabBarIcon: ({ color }) => <Ionicons name="trophy-outline" size={22} color={color} /> }} />
+      <Tabs.Screen name="index" options={{ title: "Descobrir", tabBarIcon: ({ color }) => <Ionicons name="compass-outline" size={22} color={color} /> }} />
+      <Tabs.Screen name="torneios" options={{ title: "Torneios", tabBarIcon: ({ color }) => <Ionicons name="trophy-outline" size={22} color={color} /> }} />
       <Tabs.Screen name="eventos" options={{ title: "Eventos", tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={22} color={color} /> }} />
       <Tabs.Screen name="notificacoes" options={{ title: "Avisos", tabBarIcon: ({ color }) => <Ionicons name="notifications-outline" size={22} color={color} /> }} />
       <Tabs.Screen name="perfil" options={{ title: "Perfil", tabBarIcon: () => <IconePerfilAba /> }} />

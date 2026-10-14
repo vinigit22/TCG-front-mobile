@@ -12,9 +12,9 @@ export const STATUS_VISIVEIS: StatusTorneio[] = [
 ];
 
 export const torneioService = {
-  async listar(): Promise<Torneio[]> {
+  async listar(lojaId?: number): Promise<Torneio[]> {
     const { data } = await api.get<TorneioApi[]>("/torneios", {
-      params: { status: STATUS_VISIVEIS.join(",") },
+      params: { status: STATUS_VISIVEIS.join(","), ...(lojaId ? { lojaId } : {}) },
     });
     return data.map(mapearTorneio);
   },

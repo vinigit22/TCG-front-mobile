@@ -9,8 +9,6 @@ import { AvatarPerfil } from "./AvatarPerfil";
 import { montarUrlImagem } from "../services/api";
 
 interface BarraNavegacaoProps {
-  aoAbrirNotificacoes: () => void;
-  aoAbrirPerfil: () => void;
   aoAbrirPesquisa: () => void;
   aoFecharPesquisa: () => void;
   pesquisaAberta: boolean;
@@ -19,7 +17,7 @@ interface BarraNavegacaoProps {
   quantidadeNaoLidas?: number;
 }
 
-export function BarraNavegacao({ aoAbrirNotificacoes, aoAbrirPerfil, aoAbrirPesquisa, aoFecharPesquisa, pesquisaAberta, termoPesquisa, aoMudarPesquisa, quantidadeNaoLidas = 0 }: BarraNavegacaoProps) {
+export function BarraNavegacao({ aoAbrirPesquisa, aoFecharPesquisa, pesquisaAberta, termoPesquisa, aoMudarPesquisa }: BarraNavegacaoProps) {
   const insets = useSafeAreaInsets();
   const { usuario } = useAuth();
   const campoPesquisa = useRef<TextInput>(null);
@@ -52,13 +50,6 @@ export function BarraNavegacao({ aoAbrirNotificacoes, aoAbrirPerfil, aoAbrirPesq
           <View style={estilos.acoes}>
             <Pressable style={estilos.botaoIcone} onPress={aoAbrirPesquisa} hitSlop={8} accessibilityLabel="Pesquisar torneios">
               <Ionicons name="search-outline" size={21} color={cores.textoClaro} />
-            </Pressable>
-            <Pressable style={estilos.botaoIcone} onPress={aoAbrirNotificacoes} hitSlop={8} accessibilityLabel="Abrir notificações">
-              <Ionicons name="notifications-outline" size={20} color={cores.textoClaro} />
-              {quantidadeNaoLidas > 0 ? <View style={estilos.marcador}><Text style={estilos.marcadorTexto}>{quantidadeNaoLidas > 9 ? "9+" : quantidadeNaoLidas}</Text></View> : null}
-            </Pressable>
-            <Pressable style={estilos.botaoIcone} onPress={aoAbrirPerfil} hitSlop={8} accessibilityLabel="Abrir perfil">
-              {usuario ? <AvatarPerfil foto={montarUrlImagem(usuario.imagemPerfil)} nome={usuario.nickname || usuario.nome} tamanho={36} /> : <Ionicons name="person-outline" size={20} color={cores.textoClaro} />}
             </Pressable>
           </View>
         </View>

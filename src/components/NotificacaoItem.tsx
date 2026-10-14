@@ -10,15 +10,16 @@ interface NotificacaoItemProps {
 }
 
 const iconesPorTipo: Record<Notificacao["tipo"], string> = {
-  INSCRICAO_CONFIRMADA: "✅",
-  TORNEIO_INICIADO: "🏁",
-  RODADA_INICIADA: "🔔",
-  PAREAMENTO: "⚔️",
-  RESULTADO_REGISTRADO: "📋",
-  TORNEIO_FINALIZADO: "🏆",
-  EVENTO_ATUALIZADO: "📅",
-  TORNEIO_CANCELADO: "⚠️",
-  AVISO_GERAL: "📣",
+  CHECK_IN_SOLICITADO: "Check-in solicitado",
+  INSCRICAO_CONFIRMADA: "âœ…",
+  TORNEIO_INICIADO: "ðŸ",
+  RODADA_INICIADA: "ðŸ””",
+  PAREAMENTO: "âš”ï¸",
+  RESULTADO_REGISTRADO: "ðŸ“‹",
+  TORNEIO_FINALIZADO: "ðŸ†",
+  EVENTO_ATUALIZADO: "ðŸ“…",
+  TORNEIO_CANCELADO: "âš ï¸",
+  AVISO_GERAL: "ðŸ“£",
 };
 
 function formatarQuando(dataIso: string) {
@@ -27,7 +28,7 @@ function formatarQuando(dataIso: string) {
   const mes = String(data.getMonth() + 1).padStart(2, "0");
   const hora = String(data.getHours()).padStart(2, "0");
   const minuto = String(data.getMinutes()).padStart(2, "0");
-  return `${dia}/${mes} às ${hora}:${minuto}`;
+  return `${dia}/${mes} Ã s ${hora}:${minuto}`;
 }
 
 export function NotificacaoItem({ notificacao, aoPressionar }: NotificacaoItemProps) {
