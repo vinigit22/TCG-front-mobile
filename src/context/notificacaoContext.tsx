@@ -1,10 +1,12 @@
-import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { Alert } from "react-native";
 import { useAuth } from "./authContext";
 import { Notificacao } from "../models/types";
 import { notificacaoService } from "../services/notificacaoService";
 
+const INTERVALO_ATUALIZACAO = 15000;
+
 interface NotificacaoContextDados {
-  // Notificações da conta logada (vazio sem login: no backend elas exigem token)
   notificacoes: Notificacao[];
   quantidadeNaoLidas: number;
   carregando: boolean;
@@ -14,7 +16,6 @@ interface NotificacaoContextDados {
   recarregar: () => Promise<void>;
 }
 
-// Lista carregada e de qual usuário ela é (ao trocar de conta, a lista antiga deixa de valer)
 interface Carregadas {
   usuarioId: number;
   notificacoes: Notificacao[];
@@ -32,13 +33,16 @@ export function NotificacaoProvider({ children }: { children: ReactNode }) {
   const { usuario } = useAuth();
   const usuarioId = usuario?.id;
   const [carregadas, setCarregadas] = useState<Carregadas | null>(null);
+  const conhecidas = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     if (usuarioId === undefined) return;
-
     let ativo = true;
+
     listarSemFalhar(usuarioId).then((notificacoes) => {
-      if (ativo) setCarregadas({ usuarioId, notificacoes });
+      if (!ativo) return;
+      conhecidas.current = new Set(notificacoes.map((item) => item.id));
+      setCarregadas({ usuarioId, notificacoes });
     });
 
     return () => {
@@ -46,9 +50,35 @@ export function NotificacaoProvider({ children }: { children: ReactNode }) {
     };
   }, [usuarioId]);
 
+  useEffect(() => {
+    if (usuarioId === undefined) return;
+    let ativo = true;
+
+    const intervalo = setInterval(() => {
+      notificacaoService
+        .listar(usuarioId)
+        .then((notificacoes) => {
+          if (!ativo) return;
+          const novas = notificacoes.filter((item) => !conhecidas.current.has(item.id));
+          conhecidas.current = new Set(notificacoes.map((item) => item.id));
+          setCarregadas({ usuarioId, notificacoes });
+          novas
+            .filter((item) => item.tipo === "CHECK_IN_SOLICITADO" && !item.lida)
+            .forEach((item) => Alert.alert(item.titulo, item.mensagem));
+        })
+        .catch(() => undefined);
+    }, INTERVALO_ATUALIZACAO);
+
+    return () => {
+      ativo = false;
+      clearInterval(intervalo);
+    };
+  }, [usuarioId]);
+
   const recarregar = useCallback(async () => {
     if (usuarioId === undefined) return;
     const notificacoes = await listarSemFalhar(usuarioId);
+    conhecidas.current = new Set(notificacoes.map((item) => item.id));
     setCarregadas({ usuarioId, notificacoes });
   }, [usuarioId]);
 
@@ -56,7 +86,6 @@ export function NotificacaoProvider({ children }: { children: ReactNode }) {
   const notificacoes = daContaAtual ? carregadas.notificacoes : [];
   const carregando = usuarioId !== undefined && !daContaAtual;
 
-  // Aplica uma mudança na lista já carregada da conta atual
   function alterarLista(alteracao: (lista: Notificacao[]) => Notificacao[]) {
     setCarregadas((atuais) =>
       atuais && atuais.usuarioId === usuarioId

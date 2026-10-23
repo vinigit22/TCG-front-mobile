@@ -11,7 +11,7 @@ import { BotaoVoltar } from "../../../src/components/BotaoVoltar";
 export default function ChaveamentoTorneio() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { partidas, carregando, erro } = useChaveamento(Number(id));
+  const { partidas, carregando, erro } = useChaveamento(Number(id), 10000);
 
   return (
     <View style={[estilos.container, { paddingBottom: insets.bottom + espacamento.md }]}>
