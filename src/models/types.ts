@@ -26,6 +26,7 @@ export interface Usuario {
   nickname: string;
   // Caminho devolvido pela API ("/uploads/..."). Exibir com montarUrlImagem().
   imagemPerfil?: string;
+    dataNascimento?: string;
 }
 
 export interface Jogador {
@@ -233,6 +234,7 @@ export interface CadastroRequest {
   nickname: string;
   email: string;
   senha: string;
+    dataNascimento: string;
 }
 
 export interface AuthResponse {

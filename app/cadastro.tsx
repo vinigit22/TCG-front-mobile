@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -13,7 +14,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../src/context/authContext";
 import { cores, paleta } from "../src/constants/colors";
 import { espacamento, fontes, raio, sombras, tamanhoFonte } from "../src/constants/theme";
+import { dataParaIso, ehMenorDeIdade, mascararData } from "../src/utils/idade";
 import { BotaoVoltar } from "../src/components/BotaoVoltar";
+import { TermosDeUso } from "../src/components/TermosDeUso";
 import { Botao } from "../src/components/ui/Botao";
 import { Campo } from "../src/components/ui/Campo";
 import { Brilho } from "../src/components/ui/Capa";
@@ -35,15 +38,26 @@ export default function Cadastro() {
 
   const [nome, setNome] = useState("");
   const [nickname, setNickname] = useState("");
+  const [dataNascimento, setDataNascimento] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [aceitouTermos, setAceitouTermos] = useState(false);
+  const [termosAbertos, setTermosAbertos] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erroValidacao, setErroValidacao] = useState<string | null>(null);
 
+  const dataIso = dataParaIso(dataNascimento);
+  const dataInvalida = dataNascimento.length === 10 && !dataIso;
+  const menorDeIdade = ehMenorDeIdade(dataIso);
+
   async function aoCadastrar() {
-    if (!nome.trim() || !nickname.trim() || !email.trim() || !senha || !confirmarSenha) {
+    if (!nome.trim() || !nickname.trim() || !dataNascimento || !email.trim() || !senha || !confirmarSenha) {
       setErroValidacao("Preencha todos os campos.");
+      return;
+    }
+    if (!dataIso) {
+      setErroValidacao("Informe uma data de nascimento válida (dd/mm/aaaa).");
       return;
     }
     if (!REGEX_EMAIL.test(email.trim())) {
@@ -62,12 +76,23 @@ export default function Cadastro() {
     setErroValidacao(null);
     setCarregando(true);
     try {
-      await cadastrar({ nome: nome.trim(), nickname: nickname.trim(), email: email.trim(), senha });
+      await cadastrar({
+        nome: nome.trim(),
+        nickname: nickname.trim(),
+        email: email.trim(),
+        senha,
+        dataNascimento: dataIso,
+      });
       router.back();
     } catch {
     } finally {
       setCarregando(false);
     }
+  }
+
+  function aoConcordar() {
+    setAceitouTermos(true);
+    setTermosAbertos(false);
   }
 
   const mensagemErro = erroValidacao ?? erro;
@@ -106,6 +131,22 @@ export default function Cadastro() {
               ajuda="É o nome que aparece na chave do torneio."
             />
             <Campo
+              rotulo="Data de nascimento"
+              value={dataNascimento}
+              onChangeText={(texto) => setDataNascimento(mascararData(texto))}
+              keyboardType="number-pad"
+              maxLength={10}
+              placeholder="dd/mm/aaaa"
+              erro={dataInvalida ? "Informe uma data válida." : null}
+            />
+            {menorDeIdade ? (
+              <Faixa
+                tom="vermelho"
+                titulo="Menor de 18 anos."
+                texto="Toda vez que for participar de um torneio, será necessária a autorização dos seus pais ou responsáveis."
+              />
+            ) : null}
+            <Campo
               rotulo="Email"
               value={email}
               onChangeText={setEmail}
@@ -118,9 +159,37 @@ export default function Cadastro() {
             <Campo rotulo="Confirmar senha" value={confirmarSenha} onChangeText={setConfirmarSenha} senha autoComplete="new-password" placeholder="Repita a senha" />
           </View>
 
+          <Pressable
+            onPress={() => setTermosAbertos(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Abrir os termos de uso"
+            style={({ pressed }) => [estilos.termos, aceitouTermos && estilos.termosAceitos, pressed && estilos.termosPressionado]}
+          >
+            <Ionicons
+              name={aceitouTermos ? "checkmark-circle" : "document-text-outline"}
+              size={24}
+              color={aceitouTermos ? paleta.verde[600] : paleta.roxo[600]}
+            />
+            <View style={estilos.termosTextos}>
+              <Text style={estilos.termosTitulo}>Termos de uso</Text>
+              <Text style={estilos.termosInfo}>
+                {aceitouTermos ? "Você concordou com os termos de uso." : "Toque para ler e concordar antes de se cadastrar."}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={cores.texto3} />
+          </Pressable>
+
           {mensagemErro ? <Faixa tom="vermelho" texto={mensagemErro} estilo={estilos.erro} /> : null}
 
-          <Botao titulo="Cadastrar" variante="acento" tamanho="lg" larguraTotal carregando={carregando} aoPressionar={aoCadastrar} />
+          <Botao
+            titulo="Cadastrar"
+            variante="acento"
+            tamanho="lg"
+            larguraTotal
+            carregando={carregando}
+            desabilitado={!aceitouTermos}
+            aoPressionar={aoCadastrar}
+          />
 
           <Pressable onPress={() => router.replace("/login")} accessibilityRole="link" style={estilos.link}>
             <Text style={estilos.linkTexto}>
@@ -129,6 +198,8 @@ export default function Cadastro() {
           </Pressable>
         </View>
       </ScrollView>
+
+      <TermosDeUso visivel={termosAbertos} aoFechar={() => setTermosAbertos(false)} aoConcordar={aoConcordar} />
     </KeyboardAvoidingView>
   );
 }
@@ -180,8 +251,40 @@ const estilos = StyleSheet.create({
     marginTop: espacamento.lg,
     marginBottom: espacamento.lg,
   },
+  termos: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: espacamento.ms,
+    padding: espacamento.ms,
+    marginBottom: espacamento.md,
+    borderRadius: raio.md,
+    borderWidth: 1,
+    borderColor: cores.bordaForte,
+    backgroundColor: cores.superficie,
+  },
+  termosAceitos: {
+    borderColor: paleta.verde[200],
+    backgroundColor: paleta.verde[50],
+  },
+  termosPressionado: {
+    borderColor: paleta.roxo[200],
+    backgroundColor: paleta.roxo[50],
+  },
+  termosTextos: {
+    flex: 1,
+    gap: 2,
+  },
+  termosTitulo: {
+    fontFamily: fontes.bold,
+    fontSize: tamanhoFonte.base,
+    color: cores.texto,
+  },
+  termosInfo: {
+    fontFamily: fontes.regular,
+    fontSize: tamanhoFonte.sm,
+    color: cores.texto2,
+  },
   erro: {
-    marginTop: -espacamento.sm,
     marginBottom: espacamento.md,
   },
   link: {

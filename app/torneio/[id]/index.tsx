@@ -20,6 +20,7 @@ import { formatarData, formatarHora, formatarTaxa } from "../../../src/utils/for
 import { ROTULOS_STATUS_TORNEIO, TOM_STATUS_TORNEIO } from "../../../src/utils/status";
 import { cores, paleta, sobreNoite } from "../../../src/constants/colors";
 import { cartao, espacamento, fontes, raio, tamanhoFonte, tipografia } from "../../../src/constants/theme";
+import { ehMenorDeIdade } from "../../../src/utils/idade";
 
 // Mesmas regras do backend: só entra com inscrições abertas; torneio cheio leva à lista de espera
 function calcularEstadoInscricao(
@@ -50,7 +51,7 @@ export default function DetalhesTorneio() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { autenticado } = useAuth();
+  const { autenticado, usuario } = useAuth();
   const { inscricaoDoTorneio, inscrever } = useInscricoes();
   const { torneio, carregando } = useTorneio(Number(id));
   const inscricao = inscricaoDoTorneio(Number(id));
@@ -150,6 +151,15 @@ export default function DetalhesTorneio() {
               <Vagas vagasMax={torneio.vagasMax} vagasDisponiveis={torneio.vagasDisponiveis} />
             </View>
           </View>
+
+          {inscricao && ehMenorDeIdade(usuario?.dataNascimento) ? (
+            <Faixa
+              tom="vermelho"
+              titulo="Menor de 18 anos."
+              texto="No dia do torneio, leve a autorização dos seus pais ou responsáveis para poder participar."
+              estilo={estilos.avisoMenor}
+            />
+          ) : null}
 
           {local ? (
             <View style={estilos.bloco}>
@@ -271,6 +281,9 @@ const estilos = StyleSheet.create({
     paddingTop: espacamento.md,
     borderTopWidth: 1,
     borderTopColor: cores.divisor,
+  },
+  avisoMenor: {
+    marginTop: espacamento.lg,
   },
   bloco: {
     marginTop: espacamento.lg,
