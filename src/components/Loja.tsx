@@ -1,20 +1,32 @@
 import React from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
-import { cores } from "../constants/colors";
-import { espacamento, tamanhoFonte } from "../constants/theme";
+import { cores, paleta } from "../constants/colors";
+import { fontes, tamanhoFonte } from "../constants/theme";
 
 interface LojaProps {
   nome: string;
   verificada?: boolean;
+  // Sobre o fundo escuro da capa
+  claro?: boolean;
 }
 
-export function Loja({ nome, verificada }: LojaProps) {
+// Nome da loja com o selo de verificada (o ✓ verde do site)
+export function Loja({ nome, verificada, claro = false }: LojaProps) {
   return (
     <View style={estilos.container}>
-      <Text style={estilos.texto} numberOfLines={1}>
+      <Ionicons name="storefront-outline" size={14} color={claro ? paleta.tinta[300] : cores.texto3} />
+      <Text style={[estilos.texto, claro && estilos.textoClaro]} numberOfLines={1}>
         {nome}
       </Text>
-      {verificada ? <Text style={estilos.selo}>✓</Text> : null}
+      {verificada ? (
+        <Ionicons
+          name="checkmark-circle"
+          size={15}
+          color={claro ? paleta.verde[300] : paleta.verde[600]}
+          accessibilityLabel="Loja verificada"
+        />
+      ) : null}
     </View>
   );
 }
@@ -23,16 +35,16 @@ const estilos = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    gap: espacamento.xs,
+    gap: 6,
+    flexShrink: 1,
   },
   texto: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.sm,
-    fontWeight: "600",
+    flexShrink: 1,
+    fontFamily: fontes.semibold,
+    fontSize: tamanhoFonte.md,
+    color: cores.texto2,
   },
-  selo: {
-    color: cores.sucesso,
-    fontSize: tamanhoFonte.sm,
-    fontWeight: "700",
+  textoClaro: {
+    color: paleta.tinta[300],
   },
 });

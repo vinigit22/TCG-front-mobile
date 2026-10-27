@@ -1,26 +1,17 @@
 import React, { useMemo, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { Chaveamento as ChaveamentoTipo } from "../models/types";
-import { cores } from "../constants/colors";
-import { espacamento, raio, sombra, tamanhoFonte } from "../constants/theme";
+import { cores, fundoModal, paleta, sobreNoite } from "../constants/colors";
+import { cartao, espacamento, fontes, raio, sombras, tamanhoFonte, tipografia } from "../constants/theme";
+import { ROTULOS_STATUS_PARTIDA, TOM_STATUS_PARTIDA } from "../utils/status";
+import { Botao } from "./ui/Botao";
+import { FundoNoite } from "./ui/Capa";
+import { Selo } from "./ui/Selo";
 
 interface ChaveamentoProps {
   partidas: ChaveamentoTipo[];
 }
-
-const coresPorStatus: Record<ChaveamentoTipo["status"], string> = {
-  AGUARDANDO: cores.textoSecundario,
-  PRONTA: cores.magenta,
-  EM_ANDAMENTO: cores.alerta,
-  FINALIZADA: cores.sucesso,
-};
-
-const rotulosPorStatus: Record<ChaveamentoTipo["status"], string> = {
-  AGUARDANDO: "Aguardando",
-  PRONTA: "Pronta",
-  EM_ANDAMENTO: "Em andamento",
-  FINALIZADA: "Finalizada",
-};
 
 function nomeDoLado(partida: ChaveamentoTipo, lado: "A" | "B") {
   const nome = lado === "A" ? partida.jogadorA : partida.jogadorB;
@@ -48,6 +39,16 @@ function descreverResultado(partida: ChaveamentoTipo) {
   }
 }
 
+function SeloPartida({ partida }: { partida: ChaveamentoTipo }) {
+  return (
+    <Selo
+      texto={ROTULOS_STATUS_PARTIDA[partida.status]}
+      tom={TOM_STATUS_PARTIDA[partida.status]}
+      vivo={partida.status === "EM_ANDAMENTO"}
+    />
+  );
+}
+
 interface LinhaJogadorProps {
   nome: string;
   games: number;
@@ -67,11 +68,7 @@ function LinhaJogador({ nome, games, definido, venceu, perdeu, mostrarPlacar, ca
       >
         {nome}
       </Text>
-      {campeao ? (
-        <View style={estilos.selo}>
-          <Text style={estilos.textoSelo}>Campeão</Text>
-        </View>
-      ) : null}
+      {campeao ? <Selo texto="Campeão" tom="ambar" icone="trophy" /> : null}
       {mostrarPlacar ? <Text style={[estilos.placar, venceu && estilos.placarVencedor]}>{games}</Text> : null}
     </View>
   );
@@ -88,24 +85,21 @@ function CartaoPartida({ partida, eFinal, temCampeao, aoPressionar }: CartaoPart
   const venceuA = !!partida.vencedor && partida.vencedor === partida.jogadorA;
   const venceuB = !!partida.vencedor && partida.vencedor === partida.jogadorB;
   const mostrarPlacar = partida.status === "FINALIZADA" || partida.status === "EM_ANDAMENTO";
-  const cor = coresPorStatus[partida.status];
 
   return (
     <Pressable
       onPress={aoPressionar}
+      accessibilityRole="button"
+      accessibilityHint="Abre os detalhes da partida"
       style={({ pressed }) => [
         estilos.partida,
         eFinal && estilos.partidaFinal,
-        eFinal && temCampeao && estilos.partidaCampea,
         pressed && estilos.partidaPressionada,
       ]}
     >
       <View style={estilos.topoPartida}>
-        <Text style={estilos.mesa}>Mesa {partida.mesa}</Text>
-        <View style={estilos.statusLinha}>
-          <View style={[estilos.ponto, { backgroundColor: cor }]} />
-          <Text style={[estilos.statusTexto, { color: cor }]}>{rotulosPorStatus[partida.status]}</Text>
-        </View>
+        <Text style={estilos.mesa}>MESA {partida.mesa}</Text>
+        <SeloPartida partida={partida} />
       </View>
       <LinhaJogador
         nome={nomeDoLado(partida, "A")}
@@ -125,7 +119,6 @@ function CartaoPartida({ partida, eFinal, temCampeao, aoPressionar }: CartaoPart
         mostrarPlacar={mostrarPlacar}
         campeao={eFinal && temCampeao && venceuB}
       />
-      <Text style={estilos.dica}>Toque para ver os detalhes</Text>
     </Pressable>
   );
 }
@@ -176,11 +169,14 @@ export function Chaveamento({ partidas }: ChaveamentoProps) {
     <View>
       {campeao ? (
         <View style={estilos.campeao}>
-          <View style={estilos.campeaoAvatar}>
-            <Text style={estilos.campeaoInicial}>{campeao.charAt(0).toUpperCase()}</Text>
+          <FundoNoite />
+          <View style={estilos.campeaoTrofeu}>
+            <Ionicons name="trophy" size={28} color={paleta.ambar[700]} />
           </View>
-          <Text style={estilos.campeaoRotulo}>Campeão do torneio</Text>
-          <Text style={estilos.campeaoNome}>{campeao}</Text>
+          <Text style={estilos.campeaoRotulo}>CAMPEÃO DO TORNEIO</Text>
+          <Text style={estilos.campeaoNome} numberOfLines={1}>
+            {campeao}
+          </Text>
         </View>
       ) : null}
 
@@ -198,12 +194,19 @@ export function Chaveamento({ partidas }: ChaveamentoProps) {
             <Pressable
               key={numero}
               onPress={() => setRodadaEscolhida(numero)}
-              style={[estilos.aba, ativa && (eFinal ? estilos.abaFinalAtiva : estilos.abaAtiva)]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: ativa }}
+              style={[estilos.aba, ativa && estilos.abaAtiva]}
             >
+              {eFinal ? (
+                <Ionicons name="trophy-outline" size={14} color={ativa ? cores.textoInverso : paleta.ambar[700]} />
+              ) : null}
               <Text style={[estilos.abaTitulo, ativa && estilos.abaTituloAtivo]}>{rodada.nome}</Text>
-              <Text style={[estilos.abaContagem, ativa && estilos.abaContagemAtiva]}>
-                {concluidas}/{rodada.partidas.length}
-              </Text>
+              <View style={[estilos.contador, ativa && estilos.contadorAtivo]}>
+                <Text style={[estilos.contadorTexto, ativa && estilos.contadorTextoAtivo]}>
+                  {concluidas}/{rodada.partidas.length}
+                </Text>
+              </View>
             </Pressable>
           );
         })}
@@ -255,7 +258,7 @@ export function Chaveamento({ partidas }: ChaveamentoProps) {
                   </Text>
                   <Text style={estilos.modalGames}>{selecionada.gamesA}</Text>
                 </View>
-                <Text style={estilos.modalVersus}>x</Text>
+                <Text style={estilos.modalVersus}>VS</Text>
                 <View style={estilos.modalLado}>
                   <Text
                     numberOfLines={2}
@@ -273,9 +276,7 @@ export function Chaveamento({ partidas }: ChaveamentoProps) {
               <View style={estilos.modalInfo}>
                 <View style={estilos.modalLinha}>
                   <Text style={estilos.modalRotulo}>Status</Text>
-                  <Text style={[estilos.modalValor, { color: coresPorStatus[selecionada.status] }]}>
-                    {rotulosPorStatus[selecionada.status]}
-                  </Text>
+                  <SeloPartida partida={selecionada} />
                 </View>
                 <View style={estilos.modalLinha}>
                   <Text style={estilos.modalRotulo}>Resultado</Text>
@@ -289,9 +290,7 @@ export function Chaveamento({ partidas }: ChaveamentoProps) {
                 ) : null}
               </View>
 
-              <Pressable style={estilos.modalBotao} onPress={() => setSelecionada(null)}>
-                <Text style={estilos.modalBotaoTexto}>Fechar</Text>
-              </Pressable>
+              <Botao titulo="Fechar" variante="secundario" larguraTotal aoPressionar={() => setSelecionada(null)} />
             </Pressable>
           ) : null}
         </Pressable>
@@ -302,263 +301,230 @@ export function Chaveamento({ partidas }: ChaveamentoProps) {
 
 const estilos = StyleSheet.create({
   vazio: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.sm,
+    ...tipografia.pequeno,
     padding: espacamento.md,
   },
   campeao: {
-    backgroundColor: cores.roxo,
-    borderRadius: raio.lg,
-    borderWidth: 2,
-    borderColor: cores.magenta,
     alignItems: "center",
     paddingVertical: espacamento.lg,
     paddingHorizontal: espacamento.md,
     marginBottom: espacamento.md,
-    ...sombra,
+    borderRadius: raio.cartao,
+    overflow: "hidden",
+    backgroundColor: paleta.roxo[950],
+    ...sombras.md,
   },
-  campeaoAvatar: {
-    width: 72,
-    height: 72,
-    borderRadius: raio.pill,
-    backgroundColor: cores.magenta,
-    borderWidth: 4,
-    borderColor: cores.branco,
+  campeaoTrofeu: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: espacamento.sm,
-  },
-  campeaoInicial: {
-    color: cores.textoClaro,
-    fontSize: tamanhoFonte.xxl,
-    fontWeight: "900",
+    backgroundColor: paleta.ambar[100],
+    borderWidth: 3,
+    borderColor: paleta.ambar[500],
   },
   campeaoRotulo: {
-    color: cores.fundo,
-    fontSize: tamanhoFonte.sm,
-    fontWeight: "700",
+    ...tipografia.kicker,
   },
   campeaoNome: {
-    color: cores.textoClaro,
-    fontSize: tamanhoFonte.xl,
-    fontWeight: "900",
-    marginTop: 2,
+    marginTop: 4,
+    fontFamily: fontes.marca,
+    fontSize: tamanhoFonte.xxl,
+    letterSpacing: 0.5,
+    color: cores.textoInverso,
   },
   abasScroll: {
     flexGrow: 0,
   },
   abas: {
+    gap: espacamento.sm,
     paddingVertical: espacamento.xs,
   },
   aba: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: cores.branco,
-    borderWidth: 2,
-    borderColor: cores.verdeEscuro,
+    gap: 6,
+    height: 36,
+    paddingHorizontal: 14,
     borderRadius: raio.pill,
-    paddingVertical: 6,
-    paddingHorizontal: espacamento.md,
-    marginRight: espacamento.sm,
+    backgroundColor: cores.superficie,
+    borderWidth: 1,
+    borderColor: cores.borda,
   },
   abaAtiva: {
-    backgroundColor: cores.verdeEscuro,
-  },
-  abaFinalAtiva: {
-    backgroundColor: cores.magenta,
-    borderColor: cores.magenta,
+    backgroundColor: paleta.roxo[600],
+    borderColor: paleta.roxo[600],
   },
   abaTitulo: {
-    color: cores.textoEscuro,
+    fontFamily: fontes.semibold,
     fontSize: tamanhoFonte.sm,
-    fontWeight: "800",
+    color: cores.texto2,
   },
   abaTituloAtivo: {
-    color: cores.textoClaro,
+    color: cores.textoInverso,
   },
-  abaContagem: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.xs,
-    fontWeight: "700",
-    marginLeft: 6,
+  // .contador do web
+  contador: {
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 6,
+    borderRadius: raio.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: paleta.tinta[150],
   },
-  abaContagemAtiva: {
-    color: cores.fundoClaro,
+  contadorAtivo: {
+    backgroundColor: sobreNoite.pilula,
+  },
+  contadorTexto: {
+    fontFamily: fontes.bold,
+    fontSize: tamanhoFonte.xxs,
+    fontVariant: ["tabular-nums"],
+    color: paleta.tinta[700],
+  },
+  contadorTextoAtivo: {
+    color: cores.textoInverso,
   },
   resumoRodada: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.sm,
-    fontWeight: "600",
-    marginTop: espacamento.md,
+    ...tipografia.legenda,
+    marginTop: espacamento.ms,
     marginBottom: espacamento.sm,
   },
   lista: {
     paddingBottom: espacamento.lg,
   },
   partida: {
-    backgroundColor: cores.branco,
+    ...cartao,
     borderRadius: raio.md,
-    borderWidth: 2,
-    borderColor: cores.verdeEscuro,
-    padding: espacamento.sm,
-    marginBottom: espacamento.md,
+    padding: espacamento.ms,
+    marginBottom: espacamento.ms,
   },
   partidaFinal: {
-    borderColor: cores.magenta,
-  },
-  partidaCampea: {
-    borderWidth: 3,
+    borderColor: paleta.ambar[500],
+    borderWidth: 1.5,
   },
   partidaPressionada: {
-    opacity: 0.8,
+    borderColor: paleta.roxo[200],
+    backgroundColor: paleta.roxo[50],
   },
   topoPartida: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: espacamento.sm,
+    marginBottom: 10,
   },
   mesa: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.xs,
-    fontWeight: "700",
-  },
-  statusLinha: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  ponto: {
-    width: 8,
-    height: 8,
-    borderRadius: raio.pill,
-    marginRight: 5,
-  },
-  statusTexto: {
-    fontSize: tamanhoFonte.xs,
-    fontWeight: "800",
+    ...tipografia.sobretitulo,
   },
   linhaJogador: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: cores.offWhite,
-    borderRadius: raio.sm,
-    borderLeftWidth: 4,
-    borderLeftColor: "transparent",
-    paddingVertical: 9,
-    paddingHorizontal: espacamento.sm,
+    gap: espacamento.sm,
+    minHeight: 40,
+    paddingHorizontal: espacamento.ms,
     marginBottom: 4,
+    borderRadius: raio.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: "transparent",
+    backgroundColor: paleta.tinta[50],
   },
   linhaVencedora: {
-    backgroundColor: cores.fundoClaro,
-    borderLeftColor: cores.magenta,
+    backgroundColor: paleta.verde[50],
+    borderLeftColor: paleta.verde[500],
   },
   linhaPerdedora: {
     opacity: 0.55,
   },
   nomeJogador: {
     flex: 1,
-    color: cores.textoEscuro,
-    fontSize: tamanhoFonte.md,
-    fontWeight: "600",
+    fontFamily: fontes.semibold,
+    fontSize: tamanhoFonte.base,
+    color: cores.texto,
   },
   nomeVencedor: {
-    fontWeight: "900",
+    fontFamily: fontes.extrabold,
   },
   nomeIndefinido: {
-    color: cores.textoSecundario,
+    fontFamily: fontes.medio,
     fontStyle: "italic",
-    fontWeight: "500",
-  },
-  selo: {
-    backgroundColor: cores.magenta,
-    borderRadius: raio.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginLeft: espacamento.xs,
-  },
-  textoSelo: {
-    color: cores.textoClaro,
-    fontSize: 11,
-    fontWeight: "900",
+    color: cores.texto3,
   },
   placar: {
-    color: cores.textoEscuro,
+    minWidth: 18,
+    fontFamily: fontes.bold,
     fontSize: tamanhoFonte.lg,
-    fontWeight: "700",
-    marginLeft: espacamento.sm,
-    minWidth: 16,
+    fontVariant: ["tabular-nums"],
     textAlign: "right",
+    color: cores.texto,
   },
   placarVencedor: {
-    color: cores.magentaEscuro,
-    fontWeight: "900",
-  },
-  dica: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.xs,
-    textAlign: "center",
-    marginTop: 4,
+    fontFamily: fontes.extrabold,
+    color: paleta.verde[700],
   },
   fundoModal: {
     flex: 1,
-    backgroundColor: "rgba(30, 42, 33, 0.65)",
+    backgroundColor: fundoModal,
     justifyContent: "center",
     padding: espacamento.lg,
   },
+  // dialog.modal do web
   modal: {
-    backgroundColor: cores.branco,
-    borderRadius: raio.lg,
-    borderWidth: 2,
-    borderColor: cores.verdeEscuro,
+    backgroundColor: cores.superficie,
+    borderRadius: raio.xl,
     padding: espacamento.lg,
+    ...sombras.lg,
   },
   modalRodada: {
-    color: cores.magenta,
-    fontSize: tamanhoFonte.sm,
-    fontWeight: "800",
+    ...tipografia.sobretitulo,
+    color: paleta.roxo[600],
   },
   modalMesa: {
-    color: cores.textoEscuro,
-    fontSize: tamanhoFonte.xl,
-    fontWeight: "900",
+    ...tipografia.titulo,
+    marginTop: 2,
     marginBottom: espacamento.md,
   },
   modalPlacar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: cores.offWhite,
-    borderRadius: raio.md,
     padding: espacamento.md,
     marginBottom: espacamento.md,
+    borderRadius: raio.md,
+    backgroundColor: paleta.tinta[50],
+    borderWidth: 1,
+    borderColor: cores.divisor,
   },
   modalLado: {
     flex: 1,
     alignItems: "center",
   },
   modalNome: {
-    color: cores.textoEscuro,
+    fontFamily: fontes.semibold,
     fontSize: tamanhoFonte.sm,
-    fontWeight: "700",
     textAlign: "center",
+    color: cores.texto,
   },
   modalNomeVencedor: {
-    color: cores.magentaEscuro,
-    fontWeight: "900",
+    fontFamily: fontes.extrabold,
+    color: paleta.verde[700],
   },
   modalGames: {
-    color: cores.textoEscuro,
-    fontSize: tamanhoFonte.xxl,
-    fontWeight: "900",
     marginTop: espacamento.xs,
+    fontFamily: fontes.extrabold,
+    fontSize: 34,
+    lineHeight: 40,
+    fontVariant: ["tabular-nums"],
+    color: cores.texto,
   },
   modalVersus: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.md,
-    fontWeight: "700",
     marginHorizontal: espacamento.sm,
+    fontFamily: fontes.marca,
+    fontSize: tamanhoFonte.md,
+    color: cores.texto3,
   },
   modalInfo: {
-    gap: espacamento.sm,
+    gap: espacamento.ms,
     marginBottom: espacamento.lg,
   },
   modalLinha: {
@@ -567,27 +533,16 @@ const estilos = StyleSheet.create({
     alignItems: "center",
   },
   modalRotulo: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.sm,
-    fontWeight: "600",
+    fontFamily: fontes.medio,
+    fontSize: tamanhoFonte.md,
+    color: cores.texto3,
   },
   modalValor: {
-    color: cores.textoEscuro,
-    fontSize: tamanhoFonte.sm,
-    fontWeight: "700",
     flexShrink: 1,
-    textAlign: "right",
     marginLeft: espacamento.md,
-  },
-  modalBotao: {
-    backgroundColor: cores.roxo,
-    borderRadius: raio.pill,
-    paddingVertical: espacamento.sm + 2,
-    alignItems: "center",
-  },
-  modalBotaoTexto: {
-    color: cores.textoClaro,
-    fontSize: tamanhoFonte.sm,
-    fontWeight: "800",
+    fontFamily: fontes.semibold,
+    fontSize: tamanhoFonte.md,
+    textAlign: "right",
+    color: cores.texto,
   },
 });

@@ -1,29 +1,29 @@
 import React from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../../src/context/authContext";
 import { useChaveamento } from "../../../src/hooks/useChaveamento";
 import { usePartida } from "../../../src/hooks/usePartida";
-import { Chaveamento } from "../../../src/models/types";
-import { cores } from "../../../src/constants/colors";
+import { Chaveamento, StatusPartida } from "../../../src/models/types";
+import { cores, paleta, Tom } from "../../../src/constants/colors";
 import { BotaoVoltar } from "../../../src/components/BotaoVoltar";
-import { espacamento, raio, tamanhoFonte } from "../../../src/constants/theme";
+import { Botao } from "../../../src/components/ui/Botao";
+import { CabecalhoPagina } from "../../../src/components/ui/CabecalhoPagina";
+import { EstadoVazio } from "../../../src/components/ui/EstadoVazio";
+import { Faixa } from "../../../src/components/ui/Faixa";
+import { Selo } from "../../../src/components/ui/Selo";
+import { TOM_STATUS_PARTIDA } from "../../../src/utils/status";
+import { cartao, espacamento, fontes, raio, tamanhoFonte, tipografia } from "../../../src/constants/theme";
 
 const INTERVALO_ATUALIZACAO = 10000;
 
-const rotulosStatus: Record<string, string> = {
+// Do ponto de vista do jogador (o painel da loja usa os rótulos de core/rotulos.ts)
+const rotulosStatus: Record<StatusPartida, string> = {
   AGUARDANDO: "Aguardando partida",
   PRONTA: "Novo confronto disponível",
   EM_ANDAMENTO: "Partida em andamento",
   FINALIZADA: "Partida finalizada",
-};
-
-const coresStatus: Record<string, string> = {
-  AGUARDANDO: cores.textoSecundario,
-  PRONTA: cores.magenta,
-  EM_ANDAMENTO: cores.sucesso,
-  FINALIZADA: cores.textoSecundario,
 };
 
 function resumirResultado(partida: Chaveamento, nickname?: string) {
@@ -41,6 +41,15 @@ function resumirResultado(partida: Chaveamento, nickname?: string) {
   };
 }
 
+function Detalhe({ rotulo, children, largo }: { rotulo: string; children: React.ReactNode; largo?: boolean }) {
+  return (
+    <View style={[estilos.detalhe, largo && estilos.detalheLargo]}>
+      <Text style={tipografia.sobretitulo}>{rotulo}</Text>
+      {children}
+    </View>
+  );
+}
+
 interface CartaoHistoricoProps {
   partida: Chaveamento;
   nickname?: string;
@@ -50,29 +59,19 @@ function CartaoHistorico({ partida, nickname }: CartaoHistoricoProps) {
   const souJogadorA = partida.jogadorA === nickname;
   const adversario = souJogadorA ? partida.jogadorB : partida.jogadorA;
   const resumo = resumirResultado(partida, nickname);
+  const tom: Tom = resumo ? (resumo.venceu ? "verde" : "vermelho") : TOM_STATUS_PARTIDA[partida.status];
 
   return (
-    <View style={[estilos.card, estilos.cardHistorico]}>
-      <Text style={estilos.rotulo}>RODADA</Text>
-      <Text style={estilos.valor}>{partida.nomeRodada}</Text>
-
-      <Text style={estilos.rotulo}>ADVERSÁRIO</Text>
-      <Text style={estilos.valor}>{adversario ?? (partida.status === "FINALIZADA" ? "Sem adversário (bye)" : "A definir")}</Text>
-
-      <Text style={estilos.rotulo}>MESA</Text>
-      <Text style={estilos.valor}>{partida.mesa}</Text>
-
-      {resumo ? (
-        <>
-          <Text style={estilos.rotulo}>RESULTADO</Text>
-          <Text style={[estilos.valor, { color: resumo.venceu ? cores.sucesso : cores.erro }]}>{resumo.texto}</Text>
-        </>
-      ) : (
-        <>
-          <Text style={estilos.rotulo}>STATUS</Text>
-          <Text style={[estilos.status, { color: coresStatus[partida.status] }]}>{rotulosStatus[partida.status]}</Text>
-        </>
-      )}
+    <View style={estilos.historico}>
+      <View style={estilos.historicoTextos}>
+        <Text style={estilos.historicoRodada}>
+          {partida.nomeRodada} · Mesa {partida.mesa}
+        </Text>
+        <Text style={estilos.historicoAdversario} numberOfLines={1}>
+          vs {adversario ?? (partida.status === "FINALIZADA" ? "sem adversário (bye)" : "a definir")}
+        </Text>
+      </View>
+      <Selo texto={resumo ? resumo.texto : rotulosStatus[partida.status]} tom={tom} ponto={false} />
     </View>
   );
 }
@@ -101,9 +100,13 @@ export default function ConfrontoTorneio() {
         <BotaoVoltar />
         <View style={estilos.centralizado}>
           {carregando ? (
-            <ActivityIndicator color={cores.verdeEscuro} size="large" />
+            <ActivityIndicator color={cores.primaria} size="large" />
           ) : (
-            <Text style={estilos.mensagem}>Você ainda não tem partidas neste torneio.</Text>
+            <EstadoVazio
+              icone="game-controller-outline"
+              titulo="Você ainda não tem partidas"
+              texto="Quando a loja gerar a chave, sua partida aparece aqui."
+            />
           )}
         </View>
       </View>
@@ -138,66 +141,78 @@ export default function ConfrontoTorneio() {
       <BotaoVoltar />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + espacamento.lg }}
+        contentContainerStyle={[estilos.conteudo, { paddingBottom: insets.bottom + espacamento.lg }]}
       >
-        <Text style={estilos.secao}>{tituloAtual}</Text>
-        <Text style={estilos.rodada}>{partidaAtual.nomeRodada.toUpperCase()}</Text>
+        <CabecalhoPagina titulo={tituloAtual} subtitulo={partidaAtual.nomeRodada} />
 
         <View style={estilos.card}>
-          <Text style={estilos.rotulo}>SEU ADVERSÁRIO</Text>
-          <Text style={estilos.valor}>{textoAdversario}</Text>
-
-          <Text style={estilos.rotulo}>MESA</Text>
-          <Text style={estilos.valor}>{partidaAtual.mesa}</Text>
-
-          <Text style={estilos.rotulo}>STATUS</Text>
-          <Text style={[estilos.status, { color: coresStatus[statusExibido] }]}>
-            {rotulosStatus[statusExibido]}
-          </Text>
-
+          <View style={estilos.versus}>
+            <Text style={estilos.versusRotulo}>SEU ADVERSÁRIO</Text>
+            <Text style={estilos.versusNome} numberOfLines={2}>
+              {textoAdversario}
+            </Text>
+          </View>
+          <View style={estilos.grade}>
+            <Detalhe rotulo="Mesa">
+              <Text style={estilos.valor}>{partidaAtual.mesa}</Text>
+            </Detalhe>
+            <Detalhe rotulo="Status" largo>
+              <Selo
+                texto={rotulosStatus[statusExibido]}
+                tom={TOM_STATUS_PARTIDA[statusExibido]}
+                vivo={statusExibido === "EM_ANDAMENTO"}
+              />
+            </Detalhe>
+          </View>
           {resultado ? (
-            <>
-              <Text style={estilos.rotulo}>RESULTADO</Text>
-              <Text style={estilos.valor}>
+            <View style={estilos.resultado}>
+              <Text style={tipografia.sobretitulo}>Resultado</Text>
+              <Text style={[estilos.valor, { color: resultado === "Vitória" ? paleta.verde[700] : paleta.vermelho[700] }]}>
                 {resultado} ({souJogadorA ? partidaAtual.gamesA : partidaAtual.gamesB} x{" "}
                 {souJogadorA ? partidaAtual.gamesB : partidaAtual.gamesA})
               </Text>
-            </>
+            </View>
           ) : null}
         </View>
 
         {mostrarCheckIn ? (
           <View style={estilos.blocoCheckIn}>
             {meuCheckIn ? (
-              <>
-                <Text style={estilos.checkInConfirmado}>Presença confirmada</Text>
-                <Text style={estilos.checkInInfo}>
-                  {checkInAdversario ? "Seu adversário também confirmou." : "Aguardando seu adversário confirmar."}
-                </Text>
-              </>
+              <Faixa
+                tom="verde"
+                titulo="Presença confirmada."
+                texto={checkInAdversario ? "Seu adversário também confirmou." : "Aguardando seu adversário confirmar."}
+              />
             ) : convocada ? (
               <>
-                <Text style={estilos.checkInTitulo}>Sua partida foi convocada</Text>
-                <Text style={estilos.checkInInfo}>Confirme sua presença antes que o prazo acabe.</Text>
-                <Pressable
-                  style={estilos.botao}
-                  onPress={() => router.push(`/check-in/${partidaAtual.partidaId}` as never)}
-                >
-                  <Text style={estilos.botaoTexto}>CONFIRMAR PRESENÇA</Text>
-                </Pressable>
+                <Faixa tom="ambar" titulo="Sua partida foi convocada." texto="Confirme sua presença antes que o prazo acabe." />
+                <Botao
+                  titulo="Confirmar presença"
+                  variante="acento"
+                  tamanho="lg"
+                  icone="checkmark-circle-outline"
+                  larguraTotal
+                  aoPressionar={() => router.push(`/check-in/${partidaAtual.partidaId}` as never)}
+                />
               </>
             ) : (
-              <Text style={estilos.checkInInfo}>O prazo de check-in terminou. Fale com a loja.</Text>
+              <Faixa tom="vermelho" texto="O prazo de check-in terminou. Fale com a loja." />
             )}
           </View>
         ) : null}
 
         {historico.length > 0 ? (
           <>
-            <Text style={[estilos.secao, estilos.secaoHistorico]}>Partidas anteriores</Text>
-            {historico.map((partida) => (
-              <CartaoHistorico key={partida.partidaId} partida={partida} nickname={nickname} />
-            ))}
+            <Text accessibilityRole="header" style={estilos.secao}>
+              Partidas anteriores
+            </Text>
+            <View style={estilos.listaHistorico}>
+              {historico.map((partida, indice) => (
+                <View key={partida.partidaId} style={indice > 0 ? estilos.divisor : undefined}>
+                  <CartaoHistorico partida={partida} nickname={nickname} />
+                </View>
+              ))}
+            </View>
           </>
         ) : null}
       </ScrollView>
@@ -208,7 +223,10 @@ export default function ConfrontoTorneio() {
 const estilos = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: cores.fundo,
+    backgroundColor: cores.pagina,
+  },
+  conteudo: {
+    paddingHorizontal: espacamento.md,
   },
   centralizado: {
     flex: 1,
@@ -216,94 +234,88 @@ const estilos = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: espacamento.lg,
   },
-  mensagem: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.md,
-    textAlign: "center",
-  },
-  secao: {
-    color: cores.verdeEscuro,
-    fontWeight: "800",
-    fontSize: tamanhoFonte.sm,
-    textAlign: "center",
-    marginBottom: espacamento.xs,
-  },
-  secaoHistorico: {
-    marginTop: espacamento.xl,
-    marginBottom: espacamento.sm,
-  },
-  rodada: {
-    color: cores.magenta,
-    fontWeight: "900",
-    fontSize: tamanhoFonte.lg,
-    marginBottom: espacamento.lg,
-    textAlign: "center",
-  },
   card: {
-    backgroundColor: cores.branco,
-    borderRadius: raio.lg,
-    borderWidth: 2,
-    borderColor: cores.verdeEscuro,
-    marginHorizontal: espacamento.lg,
-    paddingHorizontal: espacamento.lg,
-    paddingBottom: espacamento.md,
-    gap: espacamento.xs,
+    ...cartao,
+    borderRadius: raio.cartao,
+    overflow: "hidden",
   },
-  cardHistorico: {
-    marginBottom: espacamento.md,
+  versus: {
+    padding: espacamento.md,
+    backgroundColor: paleta.roxo[50],
+    borderBottomWidth: 1,
+    borderBottomColor: paleta.roxo[100],
   },
-  rotulo: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.xs,
-    fontWeight: "700",
-    marginTop: espacamento.sm,
+  versusRotulo: {
+    ...tipografia.sobretitulo,
+    color: paleta.roxo[600],
+  },
+  versusNome: {
+    marginTop: 4,
+    fontFamily: fontes.marca,
+    fontSize: tamanhoFonte.xl,
+    lineHeight: 26,
+    letterSpacing: 0.3,
+    color: paleta.roxo[950],
+  },
+  grade: {
+    flexDirection: "row",
+    gap: espacamento.md,
+    padding: espacamento.md,
+  },
+  detalhe: {
+    minWidth: 72,
+    gap: 6,
+  },
+  detalheLargo: {
+    flex: 1,
   },
   valor: {
-    color: cores.textoEscuro,
+    fontFamily: fontes.bold,
     fontSize: tamanhoFonte.lg,
-    fontWeight: "800",
+    color: cores.texto,
   },
-  status: {
-    fontSize: tamanhoFonte.md,
-    fontWeight: "700",
+  resultado: {
+    gap: 4,
+    marginHorizontal: espacamento.md,
+    paddingVertical: espacamento.md,
+    borderTopWidth: 1,
+    borderTopColor: cores.divisor,
   },
   blocoCheckIn: {
-    backgroundColor: cores.branco,
-    borderRadius: raio.lg,
-    borderWidth: 1,
-    borderColor: cores.borda,
-    marginHorizontal: espacamento.lg,
-    marginTop: espacamento.lg,
-    padding: espacamento.md,
-    gap: espacamento.sm,
+    gap: espacamento.ms,
+    marginTop: espacamento.md,
+  },
+  secao: {
+    ...tipografia.tituloSecao,
+    marginTop: espacamento.xl,
+    marginBottom: espacamento.ms,
+  },
+  listaHistorico: {
+    ...cartao,
+    overflow: "hidden",
+  },
+  divisor: {
+    borderTopWidth: 1,
+    borderTopColor: cores.divisor,
+  },
+  historico: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: espacamento.ms,
+    paddingVertical: 12,
+    paddingHorizontal: espacamento.md,
   },
-  checkInTitulo: {
-    color: cores.textoEscuro,
-    fontSize: tamanhoFonte.md,
-    fontWeight: "800",
+  historicoTextos: {
+    flex: 1,
+    minWidth: 0,
   },
-  checkInConfirmado: {
-    color: cores.sucesso,
-    fontSize: tamanhoFonte.md,
-    fontWeight: "800",
+  historicoRodada: {
+    ...tipografia.legenda,
   },
-  checkInInfo: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.sm,
-    textAlign: "center",
-  },
-  botao: {
-    backgroundColor: cores.roxo,
-    borderRadius: raio.md,
-    paddingVertical: espacamento.md,
-    paddingHorizontal: espacamento.xl,
-    width: "100%",
-    alignItems: "center",
-  },
-  botaoTexto: {
-    color: cores.textoClaro,
-    fontWeight: "800",
-    fontSize: tamanhoFonte.md,
+  historicoAdversario: {
+    marginTop: 2,
+    fontFamily: fontes.semibold,
+    fontSize: tamanhoFonte.base,
+    color: cores.texto,
   },
 });

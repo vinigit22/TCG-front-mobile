@@ -20,7 +20,7 @@ import {
   Usuario,
 } from "../models/types";
 
-// ConversÃ£o do JSON do backend (models/api.ts) para os tipos das telas (models/types.ts)
+// Conversão do JSON do backend (models/api.ts) para os tipos das telas (models/types.ts)
 
 function opcional<T>(valor: T | null | undefined): T | undefined {
   return valor ?? undefined;
@@ -79,7 +79,7 @@ export function mapearLoja(api: LojaApi): Loja {
 }
 
 export function mapearTorneio(api: TorneioApi): Torneio {
-  // Sem endereÃ§o prÃ³prio, o torneio acontece na loja
+  // Sem endereço próprio, o torneio acontece na loja
   const endereco = api.endereco ?? api.loja.endereco;
 
   return {

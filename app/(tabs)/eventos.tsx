@@ -1,36 +1,23 @@
 import React, { useCallback, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isAxiosError } from "axios";
 import { eventoService } from "../../src/services/eventoService";
 import { Evento } from "../../src/models/types";
-import { cores } from "../../src/constants/colors";
-import { espacamento, raio, sombra, tamanhoFonte } from "../../src/constants/theme";
+import { Botao } from "../../src/components/ui/Botao";
+import { CabecalhoPagina } from "../../src/components/ui/CabecalhoPagina";
+import { DataBloco } from "../../src/components/ui/DataBloco";
+import { EstadoVazio } from "../../src/components/ui/EstadoVazio";
+import { Selo } from "../../src/components/ui/Selo";
+import { cores, paleta } from "../../src/constants/colors";
+import { cartao, espacamento, fontes, raio, tamanhoFonte } from "../../src/constants/theme";
+import { formatarHora } from "../../src/utils/formatadores";
+import { ROTULOS_STATUS_EVENTO, ROTULOS_TIPO_EVENTO, TOM_STATUS_EVENTO } from "../../src/utils/status";
 
 const INTERVALO_ATUALIZACAO = 15000;
 const STATUS_VISIVEIS: Evento["status"][] = ["PUBLICADO", "EM_ANDAMENTO"];
-
-const tipos: Record<Evento["tipo"], string> = {
-  TROCA: "Troca de cartas",
-  CONFRATERNIZACAO: "Confraternização",
-  PROMOCAO: "Promoção",
-  LANCAMENTO: "Lançamento",
-  CASUAL: "Casual",
-  OUTRO: "Evento especial",
-};
-
-const status: Record<Evento["status"], string> = {
-  RASCUNHO: "Em breve",
-  PUBLICADO: "Aberto",
-  EM_ANDAMENTO: "Em andamento",
-  ENCERRADO: "Encerrado",
-  CANCELADO: "Cancelado",
-};
-
-function data(iso: string) {
-  return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
-}
 
 function descreverErro(erro: unknown) {
   if (isAxiosError(erro)) {
@@ -39,6 +26,51 @@ function descreverErro(erro: unknown) {
     return `Sem resposta de ${endereco} (${erro.code ?? erro.message})`;
   }
   return erro instanceof Error ? erro.message : String(erro);
+}
+
+function CartaoEvento({ evento, aoPressionar }: { evento: Evento; aoPressionar: () => void }) {
+  return (
+    <Pressable
+      style={({ pressed }) => [estilos.card, pressed && estilos.cardPressionado]}
+      onPress={aoPressionar}
+      accessibilityRole="button"
+      accessibilityLabel={evento.titulo}
+    >
+      <DataBloco dataIso={evento.dataInicio} />
+      <View style={estilos.cardCorpo}>
+        <View style={estilos.cardTopo}>
+          <Text style={estilos.tipo} numberOfLines={1}>
+            {ROTULOS_TIPO_EVENTO[evento.tipo]}
+          </Text>
+          <Selo
+            texto={ROTULOS_STATUS_EVENTO[evento.status]}
+            tom={TOM_STATUS_EVENTO[evento.status]}
+            vivo={evento.status === "EM_ANDAMENTO"}
+          />
+        </View>
+        <Text style={estilos.cardTitulo} numberOfLines={2}>
+          {evento.titulo}
+        </Text>
+        <View style={estilos.linhaInfo}>
+          <Ionicons name="time-outline" size={13} color={cores.texto3} />
+          <Text style={estilos.info}>{formatarHora(evento.dataInicio)}</Text>
+          {evento.nomeLoja ? (
+            <>
+              <Text style={estilos.ponto}>·</Text>
+              <Text style={estilos.info} numberOfLines={1}>
+                {evento.nomeLoja}
+              </Text>
+            </>
+          ) : null}
+        </View>
+        {evento.descricao ? (
+          <Text style={estilos.descricao} numberOfLines={2}>
+            {evento.descricao}
+          </Text>
+        ) : null}
+      </View>
+    </Pressable>
+  );
 }
 
 export default function Eventos() {
@@ -83,54 +115,36 @@ export default function Eventos() {
     carregar(true);
   };
 
-  const cabecalho = <Text style={estilos.titulo}>Eventos</Text>;
+  const cabecalho = <CabecalhoPagina titulo="Eventos" subtitulo="Trocas, lançamentos e noites casuais nas lojas" />;
 
   return (
-    <View style={[estilos.container, { paddingTop: insets.top + espacamento.sm }]}>
+    <View style={[estilos.container, { paddingTop: insets.top + espacamento.md }]}>
       {carregando ? (
-        <View style={estilos.estado}>
-          <Text style={estilos.titulo}>Eventos</Text>
-          <View style={estilos.centro}>
-            <ActivityIndicator color={cores.roxo} size="large" />
-          </View>
+        <View style={estilos.lista}>
+          {cabecalho}
+          <ActivityIndicator color={cores.primaria} size="large" style={estilos.carregando} />
         </View>
       ) : erro ? (
-        <View style={estilos.estado}>
-          <Text style={estilos.titulo}>Eventos</Text>
-          <View style={estilos.centro}>
-            <Text style={estilos.mensagem}>Nao foi possivel carregar os eventos.</Text>
-            <Text style={estilos.detalhe}>{detalheErro}</Text>
-            <Pressable style={estilos.tentar} onPress={() => carregar()}>
-              <Text style={estilos.tentarTexto}>TENTAR NOVAMENTE</Text>
-            </Pressable>
-          </View>
+        <View style={estilos.lista}>
+          {cabecalho}
+          <EstadoVazio erro titulo="Não foi possível carregar os eventos" texto={detalheErro}>
+            <Botao titulo="Tentar de novo" variante="secundario" icone="refresh" aoPressionar={() => carregar()} />
+          </EstadoVazio>
         </View>
       ) : (
         <FlatList
           data={eventos}
           keyExtractor={(item) => String(item.id)}
           ListHeaderComponent={cabecalho}
-          ListEmptyComponent={<Text style={estilos.mensagem}>Nenhum evento disponível no momento.</Text>}
-          refreshControl={<RefreshControl refreshing={atualizando} onRefresh={atualizar} tintColor={cores.roxo} colors={[cores.roxo]} />}
-          renderItem={({ item }) => (
-            <Pressable
-              style={({ pressed }) => [estilos.card, pressed && { opacity: 0.85 }]}
-              onPress={() => router.push(`/evento/${item.id}` as never)}
-            >
-              <View style={estilos.cardTopo}>
-                <Text style={estilos.tipo}>{tipos[item.tipo]}</Text>
-                <Text style={estilos.status}>{status[item.status]}</Text>
-              </View>
-              <Text style={estilos.cardTitulo}>{item.titulo}</Text>
-              {item.nomeLoja ? <Text style={estilos.loja}>{item.nomeLoja}</Text> : null}
-              <Text style={estilos.data}>{data(item.dataInicio)}</Text>
-              {item.descricao ? (
-                <Text style={estilos.descricao} numberOfLines={2}>
-                  {item.descricao}
-                </Text>
-              ) : null}
-            </Pressable>
-          )}
+          ListEmptyComponent={
+            <EstadoVazio
+              icone="calendar-outline"
+              titulo="Nenhum evento no momento"
+              texto="Quando uma loja publicar um evento, ele aparece aqui."
+            />
+          }
+          refreshControl={<RefreshControl refreshing={atualizando} onRefresh={atualizar} tintColor={cores.primaria} colors={[cores.primaria]} />}
+          renderItem={({ item }) => <CartaoEvento evento={item} aoPressionar={() => router.push(`/evento/${item.id}` as never)} />}
           contentContainerStyle={estilos.lista}
           showsVerticalScrollIndicator={false}
         />
@@ -140,21 +154,25 @@ export default function Eventos() {
 }
 
 const estilos = StyleSheet.create({
-  container: { flex: 1, backgroundColor: cores.fundo },
+  container: { flex: 1, backgroundColor: cores.pagina },
   lista: { paddingHorizontal: espacamento.md, paddingBottom: espacamento.xl },
-  estado: { flex: 1, paddingHorizontal: espacamento.md },
-  centro: { flex: 1, padding: espacamento.lg, alignItems: "center", justifyContent: "center" },
-  titulo: { alignSelf: "stretch", color: cores.textoEscuro, fontSize: tamanhoFonte.xl, fontWeight: "900", marginBottom: espacamento.lg },
-  mensagem: { color: cores.textoSecundario, fontSize: tamanhoFonte.md, textAlign: "center" },
-  detalhe: { color: cores.textoSecundario, fontSize: tamanhoFonte.xs, textAlign: "center", marginTop: espacamento.sm },
-  tentar: { backgroundColor: cores.roxo, borderRadius: raio.md, paddingVertical: espacamento.sm, paddingHorizontal: espacamento.md, marginTop: espacamento.md },
-  tentarTexto: { color: cores.textoClaro, fontWeight: "800", fontSize: tamanhoFonte.xs },
-  card: { backgroundColor: cores.branco, borderRadius: raio.lg, borderWidth: 1, borderColor: cores.borda, padding: espacamento.md, marginBottom: espacamento.md, ...sombra },
-  cardTopo: { flexDirection: "row", justifyContent: "space-between", marginBottom: espacamento.xs },
-  tipo: { color: cores.magenta, fontWeight: "700", fontSize: tamanhoFonte.xs, textTransform: "uppercase" },
-  status: { color: cores.textoSecundario, fontSize: tamanhoFonte.xs, fontWeight: "600" },
-  cardTitulo: { color: cores.textoEscuro, fontSize: tamanhoFonte.lg, fontWeight: "800", marginBottom: espacamento.xs },
-  loja: { color: cores.roxo, fontSize: tamanhoFonte.xs, fontWeight: "600", marginBottom: 2 },
-  data: { color: cores.textoSecundario, fontSize: tamanhoFonte.sm, marginBottom: espacamento.xs },
-  descricao: { color: cores.textoSecundario, fontSize: tamanhoFonte.sm, lineHeight: 18 },
+  carregando: { marginTop: espacamento.xl },
+  card: {
+    ...cartao,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 14,
+    padding: espacamento.md,
+    marginBottom: espacamento.ms,
+    borderRadius: raio.cartao,
+  },
+  cardPressionado: { borderColor: paleta.roxo[200], backgroundColor: paleta.roxo[50] },
+  cardCorpo: { flex: 1, minWidth: 0 },
+  cardTopo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: espacamento.sm, marginBottom: 6 },
+  tipo: { flexShrink: 1, fontFamily: fontes.bold, fontSize: tamanhoFonte.xxs, letterSpacing: 0.6, textTransform: "uppercase", color: paleta.roxo[600] },
+  cardTitulo: { fontFamily: fontes.extrabold, fontSize: tamanhoFonte.lg, lineHeight: 22, letterSpacing: -0.2, color: cores.texto },
+  linhaInfo: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 6 },
+  info: { flexShrink: 1, fontFamily: fontes.medio, fontSize: tamanhoFonte.sm, color: cores.texto2 },
+  ponto: { fontFamily: fontes.bold, color: cores.texto3 },
+  descricao: { marginTop: 6, fontFamily: fontes.regular, fontSize: tamanhoFonte.sm, lineHeight: 19, color: cores.texto3 },
 });

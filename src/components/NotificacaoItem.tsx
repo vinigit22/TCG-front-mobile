@@ -1,51 +1,54 @@
 import React from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Notificacao } from "../models/types";
-import { cores } from "../constants/colors";
-import { espacamento, raio, tamanhoFonte } from "../constants/theme";
+import { cores, paleta, Tom } from "../constants/colors";
+import { espacamento, fontes, raio, sombras, tamanhoFonte } from "../constants/theme";
+import { formatarQuando } from "../utils/formatadores";
+import { BlocoIcone } from "./ui/BlocoIcone";
 
 interface NotificacaoItemProps {
   notificacao: Notificacao;
   aoPressionar: (notificacao: Notificacao) => void;
 }
 
-const iconesPorTipo: Record<Notificacao["tipo"], string> = {
-  CHECK_IN_SOLICITADO: "Check-in solicitado",
-  INSCRICAO_CONFIRMADA: "âœ…",
-  TORNEIO_INICIADO: "ðŸ",
-  RODADA_INICIADA: "ðŸ””",
-  PAREAMENTO: "âš”ï¸",
-  RESULTADO_REGISTRADO: "ðŸ“‹",
-  TORNEIO_FINALIZADO: "ðŸ†",
-  EVENTO_ATUALIZADO: "ðŸ“…",
-  TORNEIO_CANCELADO: "âš ï¸",
-  AVISO_GERAL: "ðŸ“£",
+const iconesPorTipo: Record<Notificacao["tipo"], { icone: keyof typeof Ionicons.glyphMap; tom: Tom }> = {
+  CHECK_IN_SOLICITADO: { icone: "alarm-outline", tom: "ambar" },
+  INSCRICAO_CONFIRMADA: { icone: "checkmark-circle-outline", tom: "verde" },
+  TORNEIO_INICIADO: { icone: "flag-outline", tom: "roxo" },
+  RODADA_INICIADA: { icone: "notifications-outline", tom: "roxo" },
+  PAREAMENTO: { icone: "people-outline", tom: "azul" },
+  RESULTADO_REGISTRADO: { icone: "clipboard-outline", tom: "azul" },
+  TORNEIO_FINALIZADO: { icone: "trophy-outline", tom: "ambar" },
+  EVENTO_ATUALIZADO: { icone: "calendar-outline", tom: "roxo" },
+  TORNEIO_CANCELADO: { icone: "warning-outline", tom: "vermelho" },
+  AVISO_GERAL: { icone: "megaphone-outline", tom: "roxo" },
 };
 
-function formatarQuando(dataIso: string) {
-  const data = new Date(dataIso);
-  const dia = String(data.getDate()).padStart(2, "0");
-  const mes = String(data.getMonth() + 1).padStart(2, "0");
-  const hora = String(data.getHours()).padStart(2, "0");
-  const minuto = String(data.getMinutes()).padStart(2, "0");
-  return `${dia}/${mes} Ã s ${hora}:${minuto}`;
-}
-
 export function NotificacaoItem({ notificacao, aoPressionar }: NotificacaoItemProps) {
+  const tipo = iconesPorTipo[notificacao.tipo] ?? iconesPorTipo.AVISO_GERAL;
+  const naoLida = !notificacao.lida;
+
   return (
     <Pressable
-      style={[estilos.container, !notificacao.lida && estilos.naoLida]}
+      style={({ pressed }) => [estilos.container, naoLida && estilos.naoLida, pressed && estilos.pressionado]}
       onPress={() => aoPressionar(notificacao)}
+      accessibilityRole="button"
+      accessibilityLabel={`${naoLida ? "Não lida. " : ""}${notificacao.titulo}`}
     >
-      <Text style={estilos.icone}>{iconesPorTipo[notificacao.tipo]}</Text>
+      <BlocoIcone nome={tipo.icone} tom={tipo.tom} tamanho={40} />
       <View style={estilos.textos}>
-        <Text style={estilos.titulo}>{notificacao.titulo}</Text>
+        <View style={estilos.tituloLinha}>
+          <Text style={[estilos.titulo, naoLida && estilos.tituloNaoLida]} numberOfLines={1}>
+            {notificacao.titulo}
+          </Text>
+          {naoLida ? <View style={estilos.bolinha} /> : null}
+        </View>
         <Text style={estilos.mensagem} numberOfLines={2}>
           {notificacao.mensagem}
         </Text>
         <Text style={estilos.quando}>{formatarQuando(notificacao.criadoEm)}</Text>
       </View>
-      {!notificacao.lida ? <View style={estilos.bolinha} /> : null}
     </Pressable>
   );
 }
@@ -53,45 +56,58 @@ export function NotificacaoItem({ notificacao, aoPressionar }: NotificacaoItemPr
 const estilos = StyleSheet.create({
   container: {
     flexDirection: "row",
-    backgroundColor: cores.branco,
-    borderRadius: raio.md,
-    padding: espacamento.md,
+    alignItems: "flex-start",
+    gap: espacamento.ms,
+    padding: 14,
     marginBottom: espacamento.sm,
+    backgroundColor: cores.superficie,
+    borderRadius: raio.lg,
     borderWidth: 1,
     borderColor: cores.borda,
-    alignItems: "flex-start",
-    gap: espacamento.sm,
+    ...sombras.xs,
   },
   naoLida: {
-    backgroundColor: cores.offWhite,
-    borderColor: cores.magenta,
+    backgroundColor: paleta.roxo[50],
+    borderColor: paleta.roxo[200],
   },
-  icone: {
-    fontSize: tamanhoFonte.lg,
+  pressionado: {
+    opacity: 0.85,
   },
   textos: {
     flex: 1,
+    minWidth: 0,
+  },
+  tituloLinha: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: espacamento.sm,
   },
   titulo: {
-    color: cores.textoEscuro,
-    fontWeight: "700",
-    fontSize: tamanhoFonte.sm,
+    flex: 1,
+    fontFamily: fontes.semibold,
+    fontSize: tamanhoFonte.md,
+    color: cores.texto,
+  },
+  tituloNaoLida: {
+    fontFamily: fontes.bold,
   },
   mensagem: {
-    color: cores.textoSecundario,
+    marginTop: 2,
+    fontFamily: fontes.regular,
     fontSize: tamanhoFonte.sm,
-    marginTop: espacamento.xs / 2,
+    lineHeight: 19,
+    color: cores.texto2,
   },
   quando: {
-    color: cores.textoSecundario,
+    marginTop: 6,
+    fontFamily: fontes.medio,
     fontSize: tamanhoFonte.xs,
-    marginTop: espacamento.xs,
+    color: cores.texto3,
   },
   bolinha: {
-    width: 10,
-    height: 10,
+    width: 9,
+    height: 9,
     borderRadius: 5,
-    backgroundColor: cores.magenta,
-    marginTop: espacamento.xs,
+    backgroundColor: paleta.verde[500],
   },
 });

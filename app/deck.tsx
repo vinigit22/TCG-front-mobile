@@ -1,11 +1,14 @@
 import React, { useEffect } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../src/context/authContext";
 import { cores } from "../src/constants/colors";
-import { espacamento, raio, tamanhoFonte } from "../src/constants/theme";
+import { espacamento } from "../src/constants/theme";
 import { BotaoVoltar } from "../src/components/BotaoVoltar";
+import { Botao } from "../src/components/ui/Botao";
+import { CabecalhoPagina } from "../src/components/ui/CabecalhoPagina";
+import { EstadoVazio } from "../src/components/ui/EstadoVazio";
 
 export default function DeckJogador() {
   const router = useRouter();
@@ -25,14 +28,16 @@ export default function DeckJogador() {
   return (
     <View style={[estilos.container, { paddingBottom: insets.bottom }]}>
       <BotaoVoltar />
-      <View style={estilos.cabecalho}>
-        <Text style={estilos.titulo}>Meus decks</Text>
-        <Pressable style={estilos.botaoAdicionar} disabled>
-          <Text style={estilos.botaoAdicionarTexto}>+ NOVO</Text>
-        </Pressable>
-      </View>
-      <View style={estilos.centralizado}>
-        <Text style={estilos.mensagem}>Você ainda não cadastrou nenhum deck.</Text>
+      <View style={estilos.conteudo}>
+        <CabecalhoPagina
+          titulo="Meus decks"
+          acao={<Botao titulo="Novo" variante="acento" tamanho="sm" icone="add" desabilitado />}
+        />
+        <EstadoVazio
+          icone="layers-outline"
+          titulo="Você ainda não cadastrou nenhum deck"
+          texto="Em breve você vai poder guardar suas listas e levar para os torneios."
+        />
       </View>
     </View>
   );
@@ -41,41 +46,10 @@ export default function DeckJogador() {
 const estilos = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: cores.fundo,
+    backgroundColor: cores.pagina,
   },
-  cabecalho: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: espacamento.md,
-    marginBottom: espacamento.sm,
-  },
-  titulo: {
-    color: cores.verdeEscuro,
-    fontSize: tamanhoFonte.xl,
-    fontWeight: "900",
-  },
-  botaoAdicionar: {
-    backgroundColor: cores.magenta,
-    borderRadius: raio.md,
-    paddingVertical: espacamento.xs,
-    paddingHorizontal: espacamento.md,
-    opacity: 0.5,
-  },
-  botaoAdicionarTexto: {
-    color: cores.textoClaro,
-    fontWeight: "800",
-    fontSize: tamanhoFonte.xs,
-  },
-  centralizado: {
+  conteudo: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: espacamento.lg,
-  },
-  mensagem: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.md,
-    textAlign: "center",
+    paddingHorizontal: espacamento.md,
   },
 });

@@ -1,17 +1,24 @@
 import React from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { cores } from "../constants/colors";
-import { espacamento, raio } from "../constants/theme";
+import { cores, paleta, sobreNoite } from "../constants/colors";
+import { espacamento, fontes, raio, tamanhoFonte } from "../constants/theme";
 
 interface BotaoVoltarProps {
   fallback?: string;
+  // Sobre o fundo escuro da capa
+  claro?: boolean;
+  // Soma a área segura do topo (quando o botão é o primeiro item da tela)
+  recuoTopo?: boolean;
 }
 
-export function BotaoVoltar({ fallback = "/(tabs)" }: BotaoVoltarProps) {
+// O link "‹ Voltar" (.voltar) do painel web
+export function BotaoVoltar({ fallback = "/(tabs)", claro = false, recuoTopo = true }: BotaoVoltarProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const cor = claro ? sobreNoite.textoSuave : cores.texto3;
 
   function voltar() {
     if (router.canGoBack()) {
@@ -24,41 +31,46 @@ export function BotaoVoltar({ fallback = "/(tabs)" }: BotaoVoltarProps) {
   return (
     <Pressable
       onPress={voltar}
-      style={[
-        estilos.botao,
-        {
-          marginTop: insets.top + espacamento.sm,
-        },
-      ]}
+      accessibilityRole="button"
+      accessibilityLabel="Voltar"
       hitSlop={10}
+      style={({ pressed }) => [
+        estilos.botao,
+        claro && estilos.botaoClaro,
+        recuoTopo && { marginTop: insets.top + espacamento.xs },
+        pressed && (claro ? estilos.pressionadoClaro : estilos.pressionado),
+      ]}
     >
-      <Text style={estilos.seta}>‹</Text>
-      <Text style={estilos.texto}>Voltar</Text>
+      <Ionicons name="chevron-back" size={18} color={cor} />
+      <Text style={[estilos.texto, { color: cor }]}>Voltar</Text>
     </Pressable>
   );
 }
 
 const estilos = StyleSheet.create({
   botao: {
-    marginHorizontal: espacamento.md,
-    marginBottom: espacamento.sm,
     alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: cores.fundoClaro,
-    borderRadius: raio.md,
-    paddingHorizontal: espacamento.sm,
-    paddingVertical: 6,
+    gap: 2,
+    height: 36,
+    marginHorizontal: espacamento.ms,
+    marginBottom: espacamento.xs,
+    paddingLeft: 4,
+    paddingRight: 10,
+    borderRadius: raio.botao,
   },
-  seta: {
-    color: cores.textoSecundario,
-    fontSize: 28,
-    lineHeight: 24,
-    marginRight: 3,
+  botaoClaro: {
+    marginHorizontal: espacamento.ms,
+  },
+  pressionado: {
+    backgroundColor: paleta.tinta[100],
+  },
+  pressionadoClaro: {
+    backgroundColor: sobreNoite.realce,
   },
   texto: {
-    color: cores.textoSecundario,
-    fontSize: 13,
-    fontWeight: "700",
+    fontFamily: fontes.semibold,
+    fontSize: tamanhoFonte.sm,
   },
 });

@@ -1,64 +1,92 @@
 import React from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Torneio } from "../models/types";
-import { cores } from "../constants/colors";
-import { espacamento, raio, sombra, tamanhoFonte } from "../constants/theme";
-import { Vagas } from "./Vagas";
+import { cores, paleta } from "../constants/colors";
+import { espacamento, fontes, raio, sombras, tamanhoFonte, tipografia } from "../constants/theme";
+import { formatarDataCurta, formatarTaxa } from "../utils/formatadores";
+import { ROTULOS_STATUS_TORNEIO, TOM_STATUS_TORNEIO } from "../utils/status";
 import { Loja } from "./Loja";
+import { Vagas } from "./Vagas";
+import { Degrade } from "./ui/Degrade";
+import { Selo } from "./ui/Selo";
 
 interface TorneioCardProps {
   torneio: Torneio;
   aoPressionar: (torneio: Torneio) => void;
 }
 
-const rotulosStatus: Record<Torneio["status"], string> = {
-  RASCUNHO: "Em breve",
-  INSCRICOES_ABERTAS: "Inscrições abertas",
-  INSCRICOES_ENCERRADAS: "Inscrições encerradas",
-  EM_ANDAMENTO: "Em andamento",
-  FINALIZADO: "Encerrado",
-  CANCELADO: "Cancelado",
-};
-
-function formatarData(dataIso: string) {
-  const data = new Date(dataIso);
-  const dia = String(data.getDate()).padStart(2, "0");
-  const mes = String(data.getMonth() + 1).padStart(2, "0");
-  const hora = String(data.getHours()).padStart(2, "0");
-  const minuto = String(data.getMinutes()).padStart(2, "0");
-  return { data: `${dia}/${mes}/${data.getFullYear()}`, horario: `${hora}:${minuto}` };
+function Chip({ texto, icone }: { texto: string; icone?: keyof typeof Ionicons.glyphMap }) {
+  return (
+    <View style={estilos.chip}>
+      {icone ? <Ionicons name={icone} size={13} color={paleta.tinta[700]} /> : null}
+      <Text style={estilos.chipTexto} numberOfLines={1}>
+        {texto}
+      </Text>
+    </View>
+  );
 }
 
+// O mesmo cartão da página Torneios do site: barra roxo->verde, jogo, status, título em Bungee, chips e vagas
 export function TorneioCard({ torneio, aoPressionar }: TorneioCardProps) {
-  const { data, horario } = formatarData(torneio.dataInicio);
+  const cidade = torneio.endereco ? `${torneio.endereco.cidade}/${torneio.endereco.estado}` : null;
 
   return (
     <Pressable
       style={({ pressed }) => [estilos.card, pressed && estilos.cardPressionado]}
       onPress={() => aoPressionar(torneio)}
+      accessibilityRole="button"
+      accessibilityLabel={`${torneio.titulo}, ${ROTULOS_STATUS_TORNEIO[torneio.status]}`}
     >
-      <View style={estilos.cabecalho}>
-        <Text style={estilos.jogo}>{torneio.jogo}</Text>
-        <Text style={estilos.status}>{rotulosStatus[torneio.status]}</Text>
+      <Degrade estilo={estilos.barra} />
+
+      <View style={estilos.topo}>
+        <View style={estilos.jogo}>
+          <Text style={estilos.jogoTexto} numberOfLines={1}>
+            {torneio.jogo}
+          </Text>
+        </View>
+        <Selo
+          texto={ROTULOS_STATUS_TORNEIO[torneio.status]}
+          tom={TOM_STATUS_TORNEIO[torneio.status]}
+          vivo={torneio.status === "EM_ANDAMENTO"}
+        />
       </View>
 
-      <Text style={estilos.titulo}>{torneio.titulo}</Text>
-      <Loja nome={torneio.nomeLoja} verificada={torneio.lojaVerificada} />
-
-      <View style={estilos.linhaInfo}>
-        <Text style={estilos.info}>{data}</Text>
-        <Text style={estilos.info}>{horario}</Text>
-      </View>
-
-      <Text style={estilos.premiacao}>
-        {torneio.premiacao ? `🏆 ${torneio.premiacao}` : "Sem premiação"}
+      <Text style={estilos.titulo} numberOfLines={2}>
+        {torneio.titulo}
       </Text>
+
+      <View style={estilos.info}>
+        <Loja nome={torneio.nomeLoja} verificada={torneio.lojaVerificada} />
+        <View style={estilos.infoLinha}>
+          <View style={estilos.infoItem}>
+            <Ionicons name="calendar-outline" size={14} color={cores.texto3} />
+            <Text style={estilos.infoTexto}>{formatarDataCurta(torneio.dataInicio)}</Text>
+          </View>
+          {cidade ? (
+            <View style={estilos.infoItem}>
+              <Ionicons name="location-outline" size={14} color={cores.texto3} />
+              <Text style={estilos.infoTexto} numberOfLines={1}>
+                {cidade}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={estilos.chips}>
+        <Chip texto={formatarTaxa(torneio.taxaInscricao)} icone="ticket-outline" />
+        {torneio.formato ? <Chip texto={torneio.formato} /> : null}
+        {torneio.premiacao ? <Chip texto={torneio.premiacao} icone="trophy-outline" /> : null}
+      </View>
 
       <View style={estilos.rodape}>
         <Vagas vagasMax={torneio.vagasMax} vagasDisponiveis={torneio.vagasDisponiveis} />
-        <Pressable style={estilos.botao} onPress={() => aoPressionar(torneio)}>
-          <Text style={estilos.textoBotao}>VER TORNEIO</Text>
-        </Pressable>
+        <View style={estilos.ver}>
+          <Text style={estilos.verTexto}>Ver</Text>
+          <Ionicons name="chevron-forward" size={15} color={paleta.roxo[600]} />
+        </View>
       </View>
     </Pressable>
   );
@@ -66,69 +94,113 @@ export function TorneioCard({ torneio, aoPressionar }: TorneioCardProps) {
 
 const estilos = StyleSheet.create({
   card: {
-    backgroundColor: cores.branco,
-    borderRadius: raio.lg,
+    backgroundColor: cores.superficie,
+    borderRadius: raio.cartao,
     borderWidth: 1,
     borderColor: cores.borda,
-    padding: espacamento.md,
-    marginBottom: espacamento.md,
-    ...sombra,
+    paddingVertical: espacamento.md,
+    paddingLeft: espacamento.ml + 2,
+    paddingRight: espacamento.md,
+    marginBottom: espacamento.ms,
+    overflow: "hidden",
+    ...sombras.xs,
   },
+  // Como :hover no site: borda roxa clara
   cardPressionado: {
-    opacity: 0.85,
+    borderColor: paleta.roxo[200],
+    backgroundColor: paleta.roxo[50],
   },
-  cabecalho: {
+  barra: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 5,
+  },
+  topo: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: espacamento.xs,
+    gap: espacamento.sm,
+    marginBottom: 10,
   },
+  // .torneio-jogo-tag
   jogo: {
-    color: cores.magenta,
-    fontWeight: "700",
-    fontSize: tamanhoFonte.sm,
-    textTransform: "uppercase",
+    flexShrink: 1,
+    height: 24,
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    borderRadius: raio.pill,
+    backgroundColor: paleta.roxo[100],
   },
-  status: {
-    color: cores.textoSecundario,
+  jogoTexto: {
+    fontFamily: fontes.bold,
     fontSize: tamanhoFonte.xs,
-    fontWeight: "600",
+    color: paleta.roxo[700],
   },
   titulo: {
-    color: cores.textoEscuro,
-    fontSize: tamanhoFonte.lg,
-    fontWeight: "800",
-    marginBottom: espacamento.xs,
-  },
-  linhaInfo: {
-    flexDirection: "row",
-    gap: espacamento.md,
-    marginTop: espacamento.sm,
+    ...tipografia.tituloCartao,
     marginBottom: espacamento.sm,
   },
   info: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.sm,
+    gap: 6,
+    marginBottom: espacamento.ms,
   },
-  premiacao: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.xs,
-    marginBottom: espacamento.xs,
+  infoLinha: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    columnGap: espacamento.md,
+    rowGap: 6,
+  },
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  infoTexto: {
+    fontFamily: fontes.regular,
+    fontSize: tamanhoFonte.sm,
+    color: cores.texto2,
+  },
+  chips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  // .torneio-chip
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    maxWidth: "100%",
+    height: 28,
+    paddingHorizontal: 10,
+    borderRadius: raio.sm,
+    backgroundColor: paleta.tinta[100],
+  },
+  chipTexto: {
+    flexShrink: 1,
+    fontFamily: fontes.semibold,
+    fontSize: tamanhoFonte.sm,
+    color: paleta.tinta[700],
   },
   rodape: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginTop: espacamento.xs,
+    gap: espacamento.md,
+    marginTop: espacamento.ms,
+    paddingTop: espacamento.ms,
+    borderTopWidth: 1,
+    borderTopColor: cores.divisor,
   },
-  botao: {
-    backgroundColor: cores.roxo,
-    paddingVertical: espacamento.sm,
-    paddingHorizontal: espacamento.md,
-    borderRadius: raio.md,
+  ver: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
   },
-  textoBotao: {
-    color: cores.textoClaro,
-    fontSize: tamanhoFonte.xs,
-    fontWeight: "800",
+  verTexto: {
+    fontFamily: fontes.bold,
+    fontSize: tamanhoFonte.sm,
+    color: paleta.roxo[600],
   },
 });

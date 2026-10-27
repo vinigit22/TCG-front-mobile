@@ -6,6 +6,7 @@ import * as SplashScreen from "expo-splash-screen";
 import {
   useFonts,
   PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
   PlusJakartaSans_600SemiBold,
   PlusJakartaSans_700Bold,
   PlusJakartaSans_800ExtraBold,
@@ -19,8 +20,10 @@ import { cores } from "../src/constants/colors";
 SplashScreen.preventAutoHideAsync();
 
 export default function LayoutRaiz() {
+  // As mesmas fontes do site: Plus Jakarta Sans no texto, Bungee na marca e nos títulos
   const [loaded, error] = useFonts({
     PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
@@ -38,13 +41,13 @@ export default function LayoutRaiz() {
       <AuthProvider>
         <InscricoesProvider>
           <NotificacaoProvider>
-            {/* Home troca para ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­cones claros por causa do cabeÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§alho escuro */}
+            {/* Telas com topo escuro (home, capas) trocam para ícones claros enquanto estão em foco */}
             <StatusBar style="dark" />
             <Stack
               screenOptions={{
                 headerShown: false,
                 contentStyle: {
-                  backgroundColor: cores.fundo,
+                  backgroundColor: cores.pagina,
                 },
               }}
             >

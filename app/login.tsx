@@ -1,22 +1,26 @@
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../src/context/authContext";
-import { cores } from "../src/constants/colors";
-import { espacamento, fontes, raio, tamanhoFonte } from "../src/constants/theme";
-import { BotaoVoltar } from "../src/components/BotaoVoltar";
+import { cores, paleta } from "../src/constants/colors";
+import { espacamento, fontes, raio, tamanhoFonte, tipografia } from "../src/constants/theme";
+import { Botao } from "../src/components/ui/Botao";
+import { Campo } from "../src/components/ui/Campo";
+import { Capa } from "../src/components/ui/Capa";
+import { Faixa } from "../src/components/ui/Faixa";
 
+const VANTAGENS = ["Inscrição nos torneios das lojas", "Check-in na mesa e chave ao vivo", "Troféus e histórico de partidas"];
+
+// Como o login do site: painel roxo-noite com as vantagens e o formulário logo abaixo
 export default function Login() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -49,59 +53,67 @@ export default function Login() {
     }
   }
 
+  const mensagemErro = erroValidacao ?? erro;
+
   return (
     <KeyboardAvoidingView
       style={estilos.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <BotaoVoltar fallback="/(tabs)" />
       <ScrollView
-        contentContainerStyle={[estilos.conteudo, { paddingBottom: insets.bottom + espacamento.xl }]}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + espacamento.xl }}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={estilos.titulo}>MERUEM.INC</Text>
-        <Text style={estilos.subtitulo}>Entre na sua conta</Text>
+        <Capa fallback="/(tabs)" estilo={estilos.capa}>
+          <Text style={tipografia.kicker}>APP DO JOGADOR</Text>
+          <Text style={estilos.capaTitulo}>Seus torneios no bolso.</Text>
+          <View style={estilos.vantagens}>
+            {VANTAGENS.map((vantagem) => (
+              <View key={vantagem} style={estilos.vantagem}>
+                <View style={estilos.losango} />
+                <Text style={estilos.vantagemTexto}>{vantagem}</Text>
+              </View>
+            ))}
+          </View>
+        </Capa>
 
-        <View style={estilos.campo}>
-          <Text style={estilos.rotulo}>Email</Text>
-          <TextInput
-            style={estilos.input}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder="seuemail@exemplo.com"
-            placeholderTextColor={cores.textoSecundario}
-          />
+        <View style={estilos.folha}>
+          <Text accessibilityRole="header" style={estilos.titulo}>ACESSAR</Text>
+          <Text style={estilos.subtitulo}>Entre com a sua conta de jogador.</Text>
+
+          <View style={estilos.campos}>
+            <Campo
+              rotulo="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              placeholder="seuemail@exemplo.com"
+            />
+            <Campo
+              rotulo="Senha"
+              value={senha}
+              onChangeText={setSenha}
+              senha
+              autoComplete="current-password"
+              placeholder="••••••••"
+              onSubmitEditing={aoEntrar}
+              returnKeyType="go"
+            />
+          </View>
+
+          {mensagemErro ? <Faixa tom="vermelho" texto={mensagemErro} estilo={estilos.erro} /> : null}
+
+          <Botao titulo="Entrar" tamanho="lg" larguraTotal carregando={carregando} aoPressionar={aoEntrar} />
+
+          <Pressable onPress={() => router.replace("/cadastro")} accessibilityRole="link" style={estilos.link}>
+            <Text style={estilos.linkTexto}>
+              Não possui conta? <Text style={estilos.linkDestaque}>Cadastre-se</Text>
+            </Text>
+          </Pressable>
         </View>
-
-        <View style={estilos.campo}>
-          <Text style={estilos.rotulo}>Senha</Text>
-          <TextInput
-            style={estilos.input}
-            value={senha}
-            onChangeText={setSenha}
-            secureTextEntry
-            placeholder="••••••••"
-            placeholderTextColor={cores.textoSecundario}
-          />
-        </View>
-
-        {erroValidacao || erro ? (
-          <Text style={estilos.erro}>{erroValidacao ?? erro}</Text>
-        ) : null}
-
-        <Pressable style={estilos.botao} onPress={aoEntrar} disabled={carregando}>
-          {carregando ? (
-            <ActivityIndicator color={cores.textoClaro} />
-          ) : (
-            <Text style={estilos.botaoTexto}>ENTRAR</Text>
-          )}
-        </Pressable>
-
-        <Pressable onPress={() => router.replace("/cadastro")}>
-          <Text style={estilos.link}>Não possui conta? Cadastre-se</Text>
-        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -110,67 +122,86 @@ export default function Login() {
 const estilos = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: cores.fundo,
+    backgroundColor: cores.superficie,
   },
-  conteudo: {
-    padding: espacamento.lg,
-    justifyContent: "center",
+  capa: {
+    paddingBottom: espacamento.lg,
+  },
+  capaTitulo: {
+    marginTop: espacamento.sm,
+    fontFamily: fontes.extrabold,
+    fontSize: tamanhoFonte.xxl,
+    lineHeight: 30,
+    letterSpacing: -0.4,
+    color: cores.textoInverso,
+  },
+  vantagens: {
+    gap: 10,
+    marginTop: espacamento.md,
+  },
+  vantagem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  // O losango verde da lista do login do site
+  losango: {
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+    backgroundColor: paleta.verde[400],
+    transform: [{ rotate: "45deg" }],
+  },
+  vantagemTexto: {
+    fontFamily: fontes.regular,
+    fontSize: tamanhoFonte.md,
+    color: paleta.tinta[300],
+  },
+  // Folha branca que sobe por cima da capa
+  folha: {
     flexGrow: 1,
+    marginTop: -espacamento.lg,
+    paddingHorizontal: espacamento.lg,
+    paddingTop: espacamento.xl,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    backgroundColor: cores.superficie,
   },
   titulo: {
-    color: cores.roxo,
     fontFamily: fontes.marca,
-    fontSize: tamanhoFonte.xxl,
-    letterSpacing: 1.5,
-    textAlign: "center",
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: 1.6,
+    color: paleta.roxo[900],
   },
   subtitulo: {
-    color: cores.textoSecundario,
+    marginTop: 4,
+    fontFamily: fontes.regular,
     fontSize: tamanhoFonte.md,
-    textAlign: "center",
-    marginBottom: espacamento.xl,
+    color: cores.texto3,
   },
-  campo: {
-    marginBottom: espacamento.md,
-  },
-  rotulo: {
-    color: cores.textoEscuro,
-    fontSize: tamanhoFonte.sm,
-    fontWeight: "700",
-    marginBottom: espacamento.xs,
-  },
-  input: {
-    backgroundColor: cores.branco,
-    borderRadius: raio.md,
-    borderWidth: 1,
-    borderColor: cores.borda,
-    paddingHorizontal: espacamento.md,
-    paddingVertical: espacamento.sm,
-    color: cores.textoEscuro,
-    fontSize: tamanhoFonte.md,
-  },
-  erro: {
-    color: cores.erro,
-    fontSize: tamanhoFonte.sm,
-    marginBottom: espacamento.md,
-    textAlign: "center",
-  },
-  botao: {
-    backgroundColor: cores.roxo,
-    borderRadius: raio.md,
-    paddingVertical: espacamento.md,
-    alignItems: "center",
-    marginTop: espacamento.sm,
+  campos: {
+    gap: espacamento.md,
+    marginTop: espacamento.lg,
     marginBottom: espacamento.lg,
   },
-  botaoTexto: {
-    color: cores.textoClaro,
-    fontWeight: "800",
-    fontSize: tamanhoFonte.md,
+  erro: {
+    marginTop: -espacamento.sm,
+    marginBottom: espacamento.md,
   },
   link: {
-    color: cores.magenta,
-    textAlign: "center",
-    fontWeight: "700",
+    alignSelf: "center",
+    paddingVertical: espacamento.sm,
+    marginTop: espacamento.md,
+    borderRadius: raio.sm,
+  },
+  linkTexto: {
+    fontFamily: fontes.regular,
+    fontSize: tamanhoFonte.md,
+    color: cores.texto3,
+  },
+  linkDestaque: {
+    fontFamily: fontes.bold,
+    color: paleta.roxo[600],
   },
 });

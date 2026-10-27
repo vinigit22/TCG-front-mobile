@@ -1,17 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import api from "../../src/services/api";
+import { AvatarPerfil } from "../../src/components/AvatarPerfil";
 import { BotaoVoltar } from "../../src/components/BotaoVoltar";
-import { cores } from "../../src/constants/colors";
-import { espacamento, raio, tamanhoFonte } from "../../src/constants/theme";
+import { Botao } from "../../src/components/ui/Botao";
+import { CabecalhoPagina } from "../../src/components/ui/CabecalhoPagina";
+import { FundoNoite } from "../../src/components/ui/Capa";
+import { Faixa } from "../../src/components/ui/Faixa";
+import { Selo } from "../../src/components/ui/Selo";
+import { cores, paleta } from "../../src/constants/colors";
+import { cartao, espacamento, fontes, raio, sombras, tamanhoFonte } from "../../src/constants/theme";
 
 interface PartidaCheckIn {
   id: number;
@@ -34,9 +34,24 @@ function formatarTempo(seg: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function Jogador({ nickname, confirmado }: { nickname: string; confirmado: boolean }) {
+  return (
+    <View style={estilos.jogador}>
+      <AvatarPerfil nome={nickname} tamanho={52} />
+      <Text style={estilos.jogadorNome} numberOfLines={1}>
+        {nickname}
+      </Text>
+      {confirmado ? (
+        <Selo texto="Check-in feito" tom="verde" icone="checkmark" />
+      ) : (
+        <Selo texto="Aguardando" tom="neutro" />
+      )}
+    </View>
+  );
+}
+
 export default function CheckIn() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [partida, setPartida] = useState<PartidaCheckIn | null>(null);
@@ -94,119 +109,121 @@ export default function CheckIn() {
   return (
     <View style={[estilos.container, { paddingBottom: insets.bottom }]}>
       <BotaoVoltar />
-      <View style={estilos.conteudo}>
-        <Text style={estilos.titulo}>Check-in da Partida</Text>
+      <ScrollView contentContainerStyle={estilos.conteudo} showsVerticalScrollIndicator={false}>
+        <CabecalhoPagina titulo="Check-in" subtitulo={partida ? `Mesa ${partida.mesa}` : "Confirme que você está na mesa"} />
 
         {!partida ? (
-          <ActivityIndicator color={cores.roxo} size="large" />
+          <ActivityIndicator color={cores.primaria} size="large" />
         ) : (
           <>
-            <Text style={estilos.mesa}>Mesa {partida.mesa}</Text>
-
             {/* Cronômetro */}
-            <View style={[estilos.timer, expirou && estilos.timerExpirado]}>
-              <Text style={[estilos.timerTexto, expirou && estilos.timerTextoExpirado]}>
-                {expirou ? "Prazo expirado" : formatarTempo(segundos)}
-              </Text>
-              {!expirou && (
+            {expirou ? (
+              <View style={[estilos.timer, estilos.timerExpirado]}>
+                <Text style={estilos.timerExpiradoTexto}>PRAZO EXPIRADO</Text>
+              </View>
+            ) : (
+              <View style={estilos.timer} accessibilityLabel={`Faltam ${formatarTempo(segundos)} para fazer check-in`}>
+                <FundoNoite />
+                <Text style={estilos.timerTexto}>{formatarTempo(segundos)}</Text>
                 <Text style={estilos.timerLabel}>para fazer check-in</Text>
-              )}
-            </View>
+              </View>
+            )}
 
             {/* Status dos dois jogadores */}
             <View style={estilos.jogadores}>
-              <View style={estilos.jogadorItem}>
-                <Text style={estilos.jogadorNome}>
-                  {partida.inscricaoA?.jogador.nickname ?? "Jogador A"}
-                </Text>
-                <Text style={[estilos.checkStatus, partida.checkInAEm ? estilos.ok : estilos.pendente]}>
-                  {partida.checkInAEm ? "✓ Check-in feito" : "Aguardando"}
-                </Text>
-              </View>
+              <Jogador nickname={partida.inscricaoA?.jogador.nickname ?? "Jogador A"} confirmado={!!partida.checkInAEm} />
               <Text style={estilos.vs}>VS</Text>
-              <View style={estilos.jogadorItem}>
-                <Text style={estilos.jogadorNome}>
-                  {partida.inscricaoB?.jogador.nickname ?? "Jogador B"}
-                </Text>
-                <Text style={[estilos.checkStatus, partida.checkInBEm ? estilos.ok : estilos.pendente]}>
-                  {partida.checkInBEm ? "✓ Check-in feito" : "Aguardando"}
-                </Text>
-              </View>
+              <Jogador nickname={partida.inscricaoB?.jogador.nickname ?? "Jogador B"} confirmado={!!partida.checkInBEm} />
             </View>
 
-            {erro ? <Text style={estilos.erro}>{erro}</Text> : null}
+            <View style={estilos.acoes}>
+              {erro ? <Faixa tom="vermelho" texto={erro} /> : null}
 
-            {sucesso ? (
-              <View style={estilos.sucessoBox}>
-                <Text style={estilos.sucessoTexto}>✓ Presença confirmada! Aguarde a loja iniciar a partida.</Text>
-              </View>
-            ) : expirou ? (
-              <Text style={estilos.aviso}>O prazo de check-in expirou. Entre em contato com a loja.</Text>
-            ) : (
-              <Pressable style={estilos.botao} onPress={fazerCheckIn} disabled={fazendoCheckIn}>
-                {fazendoCheckIn ? (
-                  <ActivityIndicator color={cores.textoClaro} />
-                ) : (
-                  <Text style={estilos.botaoTexto}>CONFIRMAR PRESENÇA</Text>
-                )}
-              </Pressable>
-            )}
+              {sucesso ? (
+                <Faixa tom="verde" titulo="Presença confirmada!" texto="Aguarde a loja iniciar a partida." />
+              ) : expirou ? (
+                <Faixa tom="ambar" texto="O prazo de check-in expirou. Entre em contato com a loja." />
+              ) : (
+                <Botao
+                  titulo="Confirmar presença"
+                  variante="acento"
+                  tamanho="lg"
+                  icone="checkmark-circle-outline"
+                  larguraTotal
+                  carregando={fazendoCheckIn}
+                  aoPressionar={fazerCheckIn}
+                />
+              )}
+            </View>
           </>
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 }
 
 const estilos = StyleSheet.create({
-  container: { flex: 1, backgroundColor: cores.fundo },
+  container: { flex: 1, backgroundColor: cores.pagina },
   conteudo: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: espacamento.xl,
-    gap: espacamento.lg,
+    paddingHorizontal: espacamento.md,
+    paddingBottom: espacamento.xl,
   },
-  titulo: { color: cores.textoEscuro, fontSize: tamanhoFonte.xl, fontWeight: "900" },
-  mesa: { color: cores.textoSecundario, fontSize: tamanhoFonte.md, fontWeight: "600" },
   timer: {
     alignItems: "center",
-    backgroundColor: cores.roxo,
-    borderRadius: raio.lg,
     paddingVertical: espacamento.lg,
-    paddingHorizontal: espacamento.xl * 2,
+    borderRadius: raio.cartao,
+    overflow: "hidden",
+    backgroundColor: paleta.roxo[950],
+    ...sombras.md,
   },
-  timerExpirado: { backgroundColor: cores.erro },
-  timerTexto: { color: cores.textoClaro, fontSize: 48, fontWeight: "900" },
-  timerTextoExpirado: { fontSize: tamanhoFonte.lg },
-  timerLabel: { color: cores.textoClaro, fontSize: tamanhoFonte.sm, opacity: 0.8 },
+  timerTexto: {
+    fontFamily: fontes.extrabold,
+    fontSize: 56,
+    lineHeight: 64,
+    letterSpacing: -1,
+    fontVariant: ["tabular-nums"],
+    color: cores.textoInverso,
+  },
+  timerLabel: {
+    fontFamily: fontes.medio,
+    fontSize: tamanhoFonte.md,
+    color: paleta.tinta[300],
+  },
+  timerExpirado: {
+    backgroundColor: paleta.vermelho[100],
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  timerExpiradoTexto: {
+    fontFamily: fontes.marca,
+    fontSize: tamanhoFonte.xl,
+    letterSpacing: 1,
+    color: paleta.vermelho[700],
+  },
   jogadores: {
+    ...cartao,
     flexDirection: "row",
     alignItems: "center",
-    gap: espacamento.md,
-    width: "100%",
-  },
-  jogadorItem: { flex: 1, alignItems: "center", gap: 4 },
-  jogadorNome: { color: cores.textoEscuro, fontWeight: "700", fontSize: tamanhoFonte.md, textAlign: "center" },
-  checkStatus: { fontSize: tamanhoFonte.sm, fontWeight: "600" },
-  ok: { color: cores.sucesso },
-  pendente: { color: cores.textoSecundario },
-  vs: { color: cores.textoSecundario, fontWeight: "900", fontSize: tamanhoFonte.lg },
-  erro: { color: cores.erro, fontSize: tamanhoFonte.sm, textAlign: "center" },
-  aviso: { color: cores.alerta, fontSize: tamanhoFonte.sm, textAlign: "center" },
-  sucessoBox: {
-    backgroundColor: cores.sucesso + "22",
-    borderRadius: raio.md,
+    gap: espacamento.sm,
+    marginTop: espacamento.md,
     padding: espacamento.md,
+    borderRadius: raio.cartao,
   },
-  sucessoTexto: { color: cores.sucesso, fontWeight: "700", textAlign: "center" },
-  botao: {
-    backgroundColor: cores.roxo,
-    borderRadius: raio.md,
-    paddingVertical: espacamento.md,
-    paddingHorizontal: espacamento.xl,
-    width: "100%",
-    alignItems: "center",
+  jogador: { flex: 1, alignItems: "center", gap: 8 },
+  jogadorNome: {
+    maxWidth: "100%",
+    fontFamily: fontes.bold,
+    fontSize: tamanhoFonte.base,
+    textAlign: "center",
+    color: cores.texto,
   },
-  botaoTexto: { color: cores.textoClaro, fontWeight: "800", fontSize: tamanhoFonte.md },
+  vs: {
+    fontFamily: fontes.marca,
+    fontSize: tamanhoFonte.lg,
+    color: paleta.roxo[300],
+  },
+  acoes: {
+    gap: espacamento.ms,
+    marginTop: espacamento.lg,
+  },
 });

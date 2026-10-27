@@ -1,24 +1,28 @@
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../src/context/authContext";
-import { cores } from "../src/constants/colors";
-import { espacamento, fontes, raio, tamanhoFonte } from "../src/constants/theme";
+import { cores, paleta } from "../src/constants/colors";
+import { espacamento, fontes, raio, sombras, tamanhoFonte } from "../src/constants/theme";
 import { BotaoVoltar } from "../src/components/BotaoVoltar";
+import { Botao } from "../src/components/ui/Botao";
+import { Campo } from "../src/components/ui/Campo";
+import { Brilho } from "../src/components/ui/Capa";
+import { Degrade } from "../src/components/ui/Degrade";
+import { Faixa } from "../src/components/ui/Faixa";
 
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Como o cadastro do site: cartão branco com a barra roxo -> verde no topo e o botão verde
 export default function Cadastro() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -66,58 +70,64 @@ export default function Cadastro() {
     }
   }
 
+  const mensagemErro = erroValidacao ?? erro;
+
   return (
     <KeyboardAvoidingView
       style={estilos.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      {/* Os dois brilhos suaves do fundo da página de cadastro do site */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Brilho cor={paleta.roxo[200]} tamanho={420} intensidade={0.9} posicao={{ top: -200, right: -180 }} />
+        <Brilho cor={paleta.verde[200]} tamanho={380} intensidade={0.8} posicao={{ bottom: -200, left: -180 }} />
+      </View>
+
       <BotaoVoltar fallback="/(tabs)" />
       <ScrollView
         contentContainerStyle={[estilos.conteudo, { paddingBottom: insets.bottom + espacamento.xl }]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={estilos.titulo}>Criar conta</Text>
+        <View style={estilos.cartao}>
+          <Degrade horizontal faixas={24} estilo={estilos.barra} />
 
-        <View style={estilos.campo}>
-          <Text style={estilos.rotulo}>Nome</Text>
-          <TextInput style={estilos.input} value={nome} onChangeText={setNome} placeholder="Seu nome" placeholderTextColor={cores.textoSecundario} />
+          <Text accessibilityRole="header" style={estilos.titulo}>CRIAR CONTA</Text>
+          <Text style={estilos.subtitulo}>Cadastre-se para entrar nos torneios das lojas.</Text>
+
+          <View style={estilos.campos}>
+            <Campo rotulo="Nome" value={nome} onChangeText={setNome} autoComplete="name" placeholder="Seu nome" />
+            <Campo
+              rotulo="Nickname"
+              value={nickname}
+              onChangeText={setNickname}
+              autoCapitalize="none"
+              placeholder="seunickname"
+              ajuda="É o nome que aparece na chave do torneio."
+            />
+            <Campo
+              rotulo="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              placeholder="seuemail@exemplo.com"
+            />
+            <Campo rotulo="Senha" value={senha} onChangeText={setSenha} senha autoComplete="new-password" placeholder="Pelo menos 6 caracteres" />
+            <Campo rotulo="Confirmar senha" value={confirmarSenha} onChangeText={setConfirmarSenha} senha autoComplete="new-password" placeholder="Repita a senha" />
+          </View>
+
+          {mensagemErro ? <Faixa tom="vermelho" texto={mensagemErro} estilo={estilos.erro} /> : null}
+
+          <Botao titulo="Cadastrar" variante="acento" tamanho="lg" larguraTotal carregando={carregando} aoPressionar={aoCadastrar} />
+
+          <Pressable onPress={() => router.replace("/login")} accessibilityRole="link" style={estilos.link}>
+            <Text style={estilos.linkTexto}>
+              Já possui conta? <Text style={estilos.linkDestaque}>Entrar</Text>
+            </Text>
+          </Pressable>
         </View>
-
-        <View style={estilos.campo}>
-          <Text style={estilos.rotulo}>Nickname</Text>
-          <TextInput style={estilos.input} value={nickname} onChangeText={setNickname} autoCapitalize="none" placeholder="seunickname" placeholderTextColor={cores.textoSecundario} />
-        </View>
-
-        <View style={estilos.campo}>
-          <Text style={estilos.rotulo}>Email</Text>
-          <TextInput style={estilos.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="seuemail@exemplo.com" placeholderTextColor={cores.textoSecundario} />
-        </View>
-
-        <View style={estilos.campo}>
-          <Text style={estilos.rotulo}>Senha</Text>
-          <TextInput style={estilos.input} value={senha} onChangeText={setSenha} secureTextEntry placeholder="••••••••" placeholderTextColor={cores.textoSecundario} />
-        </View>
-
-        <View style={estilos.campo}>
-          <Text style={estilos.rotulo}>Confirmar senha</Text>
-          <TextInput style={estilos.input} value={confirmarSenha} onChangeText={setConfirmarSenha} secureTextEntry placeholder="••••••••" placeholderTextColor={cores.textoSecundario} />
-        </View>
-
-        {erroValidacao || erro ? (
-          <Text style={estilos.erro}>{erroValidacao ?? erro}</Text>
-        ) : null}
-
-        <Pressable style={estilos.botao} onPress={aoCadastrar} disabled={carregando}>
-          {carregando ? (
-            <ActivityIndicator color={cores.textoClaro} />
-          ) : (
-            <Text style={estilos.botaoTexto}>CADASTRAR</Text>
-          )}
-        </Pressable>
-
-        <Pressable onPress={() => router.replace("/login")}>
-          <Text style={estilos.link}>Já possui conta? Entrar</Text>
-        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -126,62 +136,67 @@ export default function Cadastro() {
 const estilos = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: cores.fundo,
+    backgroundColor: cores.pagina,
+    overflow: "hidden",
   },
   conteudo: {
-    padding: espacamento.lg,
     flexGrow: 1,
     justifyContent: "center",
+    paddingHorizontal: espacamento.md,
+  },
+  cartao: {
+    paddingHorizontal: espacamento.ml,
+    paddingTop: espacamento.xl,
+    paddingBottom: espacamento.lg,
+    borderRadius: 28,
+    overflow: "hidden",
+    backgroundColor: cores.superficie,
+    ...sombras.lg,
+  },
+  barra: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 6,
   },
   titulo: {
-    color: cores.roxo,
     fontFamily: fontes.marca,
-    fontSize: tamanhoFonte.xl,
-    letterSpacing: 1.5,
+    fontSize: 24,
+    lineHeight: 30,
+    letterSpacing: 1.2,
     textAlign: "center",
-    marginBottom: espacamento.xl,
+    color: paleta.roxo[900],
   },
-  campo: {
-    marginBottom: espacamento.md,
-  },
-  rotulo: {
-    color: cores.textoEscuro,
-    fontSize: tamanhoFonte.sm,
-    fontWeight: "700",
-    marginBottom: espacamento.xs,
-  },
-  input: {
-    backgroundColor: cores.branco,
-    borderRadius: raio.md,
-    borderWidth: 1,
-    borderColor: cores.borda,
-    paddingHorizontal: espacamento.md,
-    paddingVertical: espacamento.sm,
-    color: cores.textoEscuro,
+  subtitulo: {
+    marginTop: 6,
+    fontFamily: fontes.regular,
     fontSize: tamanhoFonte.md,
-  },
-  erro: {
-    color: cores.erro,
-    fontSize: tamanhoFonte.sm,
-    marginBottom: espacamento.md,
     textAlign: "center",
+    color: cores.texto3,
   },
-  botao: {
-    backgroundColor: cores.roxo,
-    borderRadius: raio.md,
-    paddingVertical: espacamento.md,
-    alignItems: "center",
-    marginTop: espacamento.sm,
+  campos: {
+    gap: espacamento.md,
+    marginTop: espacamento.lg,
     marginBottom: espacamento.lg,
   },
-  botaoTexto: {
-    color: cores.textoClaro,
-    fontWeight: "800",
-    fontSize: tamanhoFonte.md,
+  erro: {
+    marginTop: -espacamento.sm,
+    marginBottom: espacamento.md,
   },
   link: {
-    color: cores.magenta,
-    textAlign: "center",
-    fontWeight: "700",
+    alignSelf: "center",
+    paddingVertical: espacamento.sm,
+    marginTop: espacamento.md,
+    borderRadius: raio.sm,
+  },
+  linkTexto: {
+    fontFamily: fontes.regular,
+    fontSize: tamanhoFonte.md,
+    color: cores.texto3,
+  },
+  linkDestaque: {
+    fontFamily: fontes.bold,
+    color: paleta.roxo[600],
   },
 });

@@ -1,12 +1,14 @@
 import React from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Chaveamento } from "../../../src/components/Chaveamento";
+import { BotaoVoltar } from "../../../src/components/BotaoVoltar";
+import { CabecalhoPagina } from "../../../src/components/ui/CabecalhoPagina";
+import { EstadoVazio } from "../../../src/components/ui/EstadoVazio";
 import { useChaveamento } from "../../../src/hooks/useChaveamento";
 import { cores } from "../../../src/constants/colors";
-import { espacamento, tamanhoFonte } from "../../../src/constants/theme";
-import { BotaoVoltar } from "../../../src/components/BotaoVoltar";
+import { espacamento } from "../../../src/constants/theme";
 
 export default function ChaveamentoTorneio() {
   const insets = useSafeAreaInsets();
@@ -17,11 +19,11 @@ export default function ChaveamentoTorneio() {
     <View style={[estilos.container, { paddingBottom: insets.bottom + espacamento.md }]}>
       <BotaoVoltar />
       <View style={estilos.conteudo}>
-        <Text style={estilos.titulo}>Chaveamento</Text>
+        <CabecalhoPagina titulo="Chaveamento" subtitulo="Atualiza sozinho a cada resultado" />
         {carregando ? (
-          <ActivityIndicator color={cores.verdeEscuro} size="large" />
+          <ActivityIndicator color={cores.primaria} size="large" />
         ) : erro ? (
-          <Text style={estilos.mensagem}>Não foi possível carregar o chaveamento.</Text>
+          <EstadoVazio erro titulo="Não foi possível carregar o chaveamento" texto="Confira sua conexão e tente de novo." />
         ) : (
           <Chaveamento partidas={partidas} />
         )}
@@ -33,21 +35,10 @@ export default function ChaveamentoTorneio() {
 const estilos = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: cores.fundo,
+    backgroundColor: cores.pagina,
   },
   conteudo: {
     flex: 1,
-    paddingHorizontal: espacamento.lg,
-  },
-  titulo: {
-    color: cores.verdeEscuro,
-    fontSize: tamanhoFonte.xl,
-    fontWeight: "900",
-    marginBottom: espacamento.lg,
-  },
-  mensagem: {
-    color: cores.textoSecundario,
-    fontSize: tamanhoFonte.md,
-    textAlign: "center",
+    paddingHorizontal: espacamento.md,
   },
 });
