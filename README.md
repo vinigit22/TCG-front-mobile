@@ -62,18 +62,17 @@ src/
 |---|---|---|
 | Detalhe de torneio | `/torneio/[id]` | Inscrição, chave, placar |
 | Login / Cadastro | `/login`, `/cadastro` | Autenticação JWT |
-| Check-in de partida | `/check-in/[id]` | Cronômetro de 5 minutos + confirmação de presença |
+| Check-in de partida | `/check-in/[id]` | Tela verde com botão gigante, cronômetro de 5 minutos e confirmação de presença |
 
 ## Check-in de partida
 
-Quando a loja aciona **Convocar** no painel web, o backend define uma janela de 5 minutos e envia a notificação `CHECK_IN_SOLICITADO` para os dois jogadores.
+Quando a loja aciona **Chamar jogadores** no painel web, o backend define uma janela de 5 minutos e envia a notificação `CHECK_IN_SOLICITADO` para os dois jogadores.
 
-1. O jogador recebe o aviso na aba **Avisos** e toca nele.
-2. O app abre `/check-in/[id]` com um cronômetro regressivo.
-3. A tela faz polling a cada 5 s em `GET /partidas/{id}` para atualizar o status dos dois jogadores em tempo real.
-4. O jogador toca em **CONFIRMAR PRESENÇA** (`POST /partidas/{id}/check-in`).
-5. Quando ambos confirmam, a loja pode iniciar a partida normalmente.
-6. Se o prazo expirar antes da confirmação, a tela exibe "Prazo expirado" e orienta o jogador a contatar a loja.
+1. O app consulta `GET /partidas/convocacao-pendente` a cada 4 s (`ConvocacaoAutomatica`, no layout raiz) e, quando o jogador é chamado, **abre sozinho a tela verde** `/check-in/[id]`, em qualquer lugar do app. Cada convocação abre a tela uma vez; pela notificação ou pelo botão da partida o jogador também chega nela.
+2. A tela mostra o cronômetro de 5 minutos e um **botão gigante CONFIRMAR PRESENÇA** (`POST /partidas/{id}/check-in`).
+3. Depois de confirmar, ela mostra quem já confirmou (polling de 3 s em `GET /partidas/{id}`).
+4. Quando **os dois** confirmam, a partida **começa sozinha** (`EM_ANDAMENTO`) e a tela avisa o número da mesa. Só então a loja lança o resultado.
+5. Se o prazo acabar: quem confirmou vence por **W.O.** (tela verde) e quem não confirmou perde (tela vermelha). Se ninguém confirmou, a mesa termina sem vencedor e ninguém avança.
 
 ## Premiação nos cartões de torneio
 

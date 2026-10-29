@@ -17,7 +17,19 @@ export interface PartidaDetalhe {
   checkInBEm?: string;
 }
 
+export interface ConvocacaoPendente {
+  partidaId: number;
+  checkInExpiraEm: string;
+}
+
 export const partidaService = {
+  // Partida em que a loja chamou o jogador e ele ainda não confirmou presença (204 = nenhuma)
+  async convocacaoPendente(): Promise<ConvocacaoPendente | null> {
+    const { data } = await api.get<PartidaApi | "">("/partidas/convocacao-pendente");
+    if (!data) return null;
+    return { partidaId: data.id, checkInExpiraEm: data.checkInExpiraEm ?? "" };
+  },
+
   async buscar(id: number): Promise<PartidaDetalhe> {
     const { data } = await api.get<PartidaApi>(`/partidas/${id}`);
     return {

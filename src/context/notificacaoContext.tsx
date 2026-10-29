@@ -1,5 +1,4 @@
-import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Alert } from "react-native";
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import { useAuth } from "./authContext";
 import { Notificacao } from "../models/types";
 import { notificacaoService } from "../services/notificacaoService";
@@ -33,7 +32,6 @@ export function NotificacaoProvider({ children }: { children: ReactNode }) {
   const { usuario } = useAuth();
   const usuarioId = usuario?.id;
   const [carregadas, setCarregadas] = useState<Carregadas | null>(null);
-  const conhecidas = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     if (usuarioId === undefined) return;
@@ -41,7 +39,6 @@ export function NotificacaoProvider({ children }: { children: ReactNode }) {
 
     listarSemFalhar(usuarioId).then((notificacoes) => {
       if (!ativo) return;
-      conhecidas.current = new Set(notificacoes.map((item) => item.id));
       setCarregadas({ usuarioId, notificacoes });
     });
 
@@ -59,12 +56,7 @@ export function NotificacaoProvider({ children }: { children: ReactNode }) {
         .listar(usuarioId)
         .then((notificacoes) => {
           if (!ativo) return;
-          const novas = notificacoes.filter((item) => !conhecidas.current.has(item.id));
-          conhecidas.current = new Set(notificacoes.map((item) => item.id));
           setCarregadas({ usuarioId, notificacoes });
-          novas
-            .filter((item) => item.tipo === "CHECK_IN_SOLICITADO" && !item.lida)
-            .forEach((item) => Alert.alert(item.titulo, item.mensagem));
         })
         .catch(() => undefined);
     }, INTERVALO_ATUALIZACAO);
@@ -78,7 +70,6 @@ export function NotificacaoProvider({ children }: { children: ReactNode }) {
   const recarregar = useCallback(async () => {
     if (usuarioId === undefined) return;
     const notificacoes = await listarSemFalhar(usuarioId);
-    conhecidas.current = new Set(notificacoes.map((item) => item.id));
     setCarregadas({ usuarioId, notificacoes });
   }, [usuarioId]);
 

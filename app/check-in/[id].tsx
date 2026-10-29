@@ -1,31 +1,44 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import api from "../../src/services/api";
+import { useAuth } from "../../src/context/authContext";
 import { AvatarPerfil } from "../../src/components/AvatarPerfil";
-import { BotaoVoltar } from "../../src/components/BotaoVoltar";
 import { Botao } from "../../src/components/ui/Botao";
-import { CabecalhoPagina } from "../../src/components/ui/CabecalhoPagina";
-import { FundoNoite } from "../../src/components/ui/Capa";
 import { Faixa } from "../../src/components/ui/Faixa";
 import { Selo } from "../../src/components/ui/Selo";
 import { cores, paleta } from "../../src/constants/colors";
-import { cartao, espacamento, fontes, raio, sombras, tamanhoFonte } from "../../src/constants/theme";
+import { espacamento, fontes, raio, sombras, tamanhoFonte } from "../../src/constants/theme";
+import { StatusPartida } from "../../src/models/types";
+
+const INTERVALO_ATUALIZACAO = 3000;
+
+interface JogadorPartida {
+  jogador: { contaId: number; nickname: string };
+}
 
 interface PartidaCheckIn {
   id: number;
   mesa: number;
+  status: StatusPartida;
+  resultado?: string | null;
   checkInExpiraEm?: string | null;
   checkInAEm?: string | null;
   checkInBEm?: string | null;
-  inscricaoA?: { jogador: { conta: { id: number }; nickname: string } } | null;
-  inscricaoB?: { jogador: { conta: { id: number }; nickname: string } } | null;
+  inscricaoA?: JogadorPartida | null;
+  inscricaoB?: JogadorPartida | null;
+  vencedor?: JogadorPartida | null;
+  rodada?: { nome: string; torneio: { id: number } };
 }
 
-function segundosRestantes(expiraEm?: string | null): number {
-  if (!expiraEm) return 0;
-  return Math.max(0, Math.floor((new Date(expiraEm).getTime() - Date.now()) / 1000));
+// A API manda datas sem fuso e com microssegundos ("2026-10-28T15:20:12.123456"): corta para milissegundos
+function instante(valor?: string | null): number {
+  if (!valor) return 0;
+  const tempo = new Date(valor.replace(/(\.\d{3})\d+/, "$1")).getTime();
+  return Number.isNaN(tempo) ? 0 : tempo;
 }
 
 function formatarTempo(seg: number): string {
@@ -34,60 +47,50 @@ function formatarTempo(seg: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function Jogador({ nickname, confirmado }: { nickname: string; confirmado: boolean }) {
-  return (
-    <View style={estilos.jogador}>
-      <AvatarPerfil nome={nickname} tamanho={52} />
-      <Text style={estilos.jogadorNome} numberOfLines={1}>
-        {nickname}
-      </Text>
-      {confirmado ? (
-        <Selo texto="Check-in feito" tom="verde" icone="checkmark" />
-      ) : (
-        <Selo texto="Aguardando" tom="neutro" />
-      )}
-    </View>
-  );
-}
+type Fase =
+  | "convocada" // chamado: botão gigante para confirmar
+  | "aguardando" // eu confirmei, falta o adversário
+  | "iniciada" // os dois confirmaram: a partida começou sozinha
+  | "expirado" // o prazo acabou e o servidor ainda está encerrando a partida
+  | "venceuWo"
+  | "perdeuWo"
+  | "semVencedor" // ninguém confirmou: a chave desta mesa se perde
+  | "encerrada"
+  | "naoConvocada";
 
 export default function CheckIn() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { usuario } = useAuth();
 
   const [partida, setPartida] = useState<PartidaCheckIn | null>(null);
-  const [segundos, setSegundos] = useState(0);
+  const [agora, setAgora] = useState(Date.now());
   const [fazendoCheckIn, setFazendoCheckIn] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const [sucesso, setSucesso] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const avisouConvocacao = useRef(false);
 
   useEffect(() => {
-    api.get<PartidaCheckIn>(`/partidas/${id}`).then(({ data }) => {
-      setPartida(data);
-      setSegundos(segundosRestantes(data.checkInExpiraEm));
-    });
+    let ativo = true;
+    const carregar = () =>
+      api
+        .get<PartidaCheckIn>(`/partidas/${id}`)
+        .then(({ data }) => {
+          if (ativo) setPartida(data);
+        })
+        .catch(() => undefined); // erro de rede no polling: tenta de novo no próximo ciclo
+    carregar();
+    const intervalo = setInterval(carregar, INTERVALO_ATUALIZACAO);
+    return () => {
+      ativo = false;
+      clearInterval(intervalo);
+    };
   }, [id]);
 
-  // Polling a cada 5s para atualizar o estado (ambos check-ins)
+  // Relógio da contagem regressiva
   useEffect(() => {
-    const poll = setInterval(async () => {
-      try {
-        const { data } = await api.get<PartidaCheckIn>(`/partidas/${id}`);
-        setPartida(data);
-        setSegundos(segundosRestantes(data.checkInExpiraEm));
-      } catch {
-        // ignora erros de rede no polling
-      }
-    }, 5000);
-    return () => clearInterval(poll);
-  }, [id]);
-
-  // Conta regressiva
-  useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setSegundos((prev) => Math.max(0, prev - 1));
-    }, 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    const intervalo = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(intervalo);
   }, []);
 
   async function fazerCheckIn() {
@@ -96,134 +99,310 @@ export default function CheckIn() {
     try {
       const { data } = await api.post<PartidaCheckIn>(`/partidas/${id}/check-in`);
       setPartida(data);
-      setSucesso(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
     } catch (e: any) {
-      setErro(e?.response?.data?.detail ?? "Não foi possível fazer check-in.");
+      setErro(e?.response?.data?.detail ?? "Não foi possível confirmar sua presença. Tente de novo.");
     } finally {
       setFazendoCheckIn(false);
     }
   }
 
-  const expirou = segundos === 0 && !!partida?.checkInExpiraEm;
+  function fechar() {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)" as never);
+  }
+
+  const souA = partida?.inscricaoA?.jogador.contaId === usuario?.id;
+  const adversario = partida ? (souA ? partida.inscricaoB : partida.inscricaoA)?.jogador.nickname : undefined;
+  const meuCheckIn = souA ? partida?.checkInAEm : partida?.checkInBEm;
+  const checkInAdversario = souA ? partida?.checkInBEm : partida?.checkInAEm;
+  const segundos = Math.max(0, Math.ceil((instante(partida?.checkInExpiraEm) - agora) / 1000));
+
+  let fase: Fase = "naoConvocada";
+  if (partida) {
+    if (partida.status === "FINALIZADA") {
+      if (partida.resultado === "DUPLO_NO_SHOW") fase = "semVencedor";
+      else if (partida.resultado === "WO_A" || partida.resultado === "WO_B") {
+        fase = partida.vencedor?.jogador.contaId === usuario?.id ? "venceuWo" : "perdeuWo";
+      } else fase = "encerrada";
+    } else if (partida.status === "EM_ANDAMENTO") fase = "iniciada";
+    else if (!partida.checkInExpiraEm) fase = "naoConvocada";
+    else if (segundos === 0) fase = "expirado";
+    else if (meuCheckIn) fase = "aguardando";
+    else fase = "convocada";
+  }
+
+  // Vibra uma vez quando o jogador cai na tela de convocação
+  useEffect(() => {
+    if (fase === "convocada" && !avisouConvocacao.current) {
+      avisouConvocacao.current = true;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => undefined);
+    }
+  }, [fase]);
+
+  const verde = fase === "convocada" || fase === "aguardando" || fase === "iniciada" || fase === "venceuWo";
+  const vermelho = fase === "perdeuWo" || fase === "semVencedor";
+  const fundo = verde ? paleta.verde[400] : vermelho ? paleta.vermelho[700] : cores.noite;
+  const corTexto = verde ? paleta.verde[950] : paleta.branco;
+  const subtitulo = partida ? `Mesa ${partida.mesa}${partida.rodada ? ` · ${partida.rodada.nome}` : ""}` : "";
+  const torneioId = partida?.rodada?.torneio.id;
 
   return (
-    <View style={[estilos.container, { paddingBottom: insets.bottom }]}>
-      <BotaoVoltar />
-      <ScrollView contentContainerStyle={estilos.conteudo} showsVerticalScrollIndicator={false}>
-        <CabecalhoPagina titulo="Check-in" subtitulo={partida ? `Mesa ${partida.mesa}` : "Confirme que você está na mesa"} />
+    <View style={[estilos.tela, { backgroundColor: fundo, paddingTop: insets.top + espacamento.sm, paddingBottom: insets.bottom + espacamento.md }]}>
+      <Pressable
+        onPress={fechar}
+        accessibilityRole="button"
+        accessibilityLabel="Fechar"
+        hitSlop={12}
+        style={estilos.fechar}
+      >
+        <Ionicons name="close" size={28} color={corTexto} />
+      </Pressable>
 
-        {!partida ? (
-          <ActivityIndicator color={cores.primaria} size="large" />
-        ) : (
-          <>
-            {/* Cronômetro */}
-            {expirou ? (
-              <View style={[estilos.timer, estilos.timerExpirado]}>
-                <Text style={estilos.timerExpiradoTexto}>PRAZO EXPIRADO</Text>
-              </View>
+      {!partida ? (
+        <View style={estilos.centro}>
+          <ActivityIndicator color={paleta.branco} size="large" />
+        </View>
+      ) : fase === "convocada" ? (
+        <>
+          <View style={estilos.topo}>
+            <Text style={[estilos.kicker, { color: corTexto }]}>{subtitulo.toUpperCase()}</Text>
+            <Text style={[estilos.titulo, { color: corTexto }]}>Você foi chamado!</Text>
+            <Text style={[estilos.versus, { color: corTexto }]}>contra @{adversario ?? "seu adversário"}</Text>
+            <Text
+              style={[estilos.tempo, { color: corTexto }]}
+              accessibilityLabel={`Faltam ${formatarTempo(segundos)} para confirmar`}
+            >
+              {formatarTempo(segundos)}
+            </Text>
+            <Text style={[estilos.tempoRotulo, { color: corTexto }]}>para confirmar presença</Text>
+          </View>
+
+          <Pressable
+            onPress={fazerCheckIn}
+            disabled={fazendoCheckIn}
+            accessibilityRole="button"
+            accessibilityLabel="Confirmar presença"
+            accessibilityState={{ busy: fazendoCheckIn }}
+            style={({ pressed }) => [
+              estilos.botaoGigante,
+              pressed && estilos.botaoGiganteApertado,
+            ]}
+          >
+            {fazendoCheckIn ? (
+              <ActivityIndicator color={paleta.verde[300]} size="large" />
             ) : (
-              <View style={estilos.timer} accessibilityLabel={`Faltam ${formatarTempo(segundos)} para fazer check-in`}>
-                <FundoNoite />
-                <Text style={estilos.timerTexto}>{formatarTempo(segundos)}</Text>
-                <Text style={estilos.timerLabel}>para fazer check-in</Text>
-              </View>
+              <>
+                <Ionicons name="checkmark-circle" size={120} color={paleta.verde[300]} />
+                <Text style={estilos.botaoTexto}>Confirmar{"\n"}presença</Text>
+              </>
             )}
+          </Pressable>
 
-            {/* Status dos dois jogadores */}
-            <View style={estilos.jogadores}>
-              <Jogador nickname={partida.inscricaoA?.jogador.nickname ?? "Jogador A"} confirmado={!!partida.checkInAEm} />
-              <Text style={estilos.vs}>VS</Text>
-              <Jogador nickname={partida.inscricaoB?.jogador.nickname ?? "Jogador B"} confirmado={!!partida.checkInBEm} />
-            </View>
+          {erro ? <Faixa tom="vermelho" texto={erro} /> : null}
+          <Text style={[estilos.rodape, { color: corTexto }]}>
+            A partida só começa quando você e seu adversário confirmarem. Quem não confirmar a tempo perde por W.O.
+          </Text>
+        </>
+      ) : (
+        <View style={estilos.centro}>
+          <View style={estilos.cartaoEstado}>
+            <Ionicons
+              name={
+                fase === "aguardando" || fase === "iniciada" || fase === "venceuWo"
+                  ? "checkmark-circle"
+                  : fase === "expirado"
+                    ? "hourglass-outline"
+                    : fase === "naoConvocada" || fase === "encerrada"
+                      ? "information-circle-outline"
+                      : "close-circle"
+              }
+              size={104}
+              color={verde ? paleta.verde[950] : paleta.branco}
+            />
+            <Text style={[estilos.tituloEstado, { color: corTexto }]}>
+              {fase === "aguardando" && "Presença confirmada!"}
+              {fase === "iniciada" && "Partida iniciada!"}
+              {fase === "expirado" && "Tempo esgotado"}
+              {fase === "venceuWo" && "Você venceu por W.O."}
+              {fase === "perdeuWo" && "Você perdeu por W.O."}
+              {fase === "semVencedor" && "Ninguém confirmou"}
+              {fase === "encerrada" && "Partida encerrada"}
+              {fase === "naoConvocada" && "Ainda não foi chamado"}
+            </Text>
+            <Text style={[estilos.textoEstado, { color: corTexto }]}>
+              {fase === "aguardando" &&
+                `Aguardando @${adversario ?? "seu adversário"} confirmar. Se ele não confirmar em ${formatarTempo(segundos)}, você vence por W.O.`}
+              {fase === "iniciada" && `Vá para a mesa ${partida.mesa}. Boa sorte contra @${adversario ?? "seu adversário"}!`}
+              {fase === "expirado" && "O prazo para confirmar acabou. Estamos encerrando a partida…"}
+              {fase === "venceuWo" && `@${adversario ?? "Seu adversário"} não compareceu. Você avança na chave.`}
+              {fase === "perdeuWo" && "Você não confirmou presença a tempo. Seu adversário avança na chave."}
+              {fase === "semVencedor" && "Nenhum dos dois confirmou presença: ninguém avança desta mesa e a chave dela se perde."}
+              {fase === "encerrada" && "O resultado desta partida já foi registrado pela loja."}
+              {fase === "naoConvocada" && "Quando a loja chamar você para a mesa, esta tela vira o botão de confirmar presença."}
+            </Text>
 
-            <View style={estilos.acoes}>
-              {erro ? <Faixa tom="vermelho" texto={erro} /> : null}
+            {fase === "aguardando" || fase === "iniciada" ? (
+              <View style={estilos.jogadores}>
+                <JogadorCheck nickname={usuario?.nickname ?? "Você"} confirmado={!!meuCheckIn} />
+                <JogadorCheck nickname={adversario ?? "Adversário"} confirmado={!!checkInAdversario} />
+              </View>
+            ) : null}
+          </View>
 
-              {sucesso ? (
-                <Faixa tom="verde" titulo="Presença confirmada!" texto="Aguarde a loja iniciar a partida." />
-              ) : expirou ? (
-                <Faixa tom="ambar" texto="O prazo de check-in expirou. Entre em contato com a loja." />
-              ) : (
-                <Botao
-                  titulo="Confirmar presença"
-                  variante="acento"
-                  tamanho="lg"
-                  icone="checkmark-circle-outline"
-                  larguraTotal
-                  carregando={fazendoCheckIn}
-                  aoPressionar={fazerCheckIn}
-                />
-              )}
-            </View>
-          </>
-        )}
-      </ScrollView>
+          {fase === "iniciada" && torneioId !== undefined ? (
+            <Botao
+              titulo="Ver minha partida"
+              variante="primario"
+              tamanho="lg"
+              larguraTotal
+              aoPressionar={() => router.replace(`/torneio/${torneioId}/confronto` as never)}
+            />
+          ) : fase !== "aguardando" && fase !== "expirado" ? (
+            <Botao titulo="Voltar" variante="secundario" tamanho="lg" larguraTotal aoPressionar={fechar} />
+          ) : null}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function JogadorCheck({ nickname, confirmado }: { nickname: string; confirmado: boolean }) {
+  return (
+    <View style={estilos.jogador}>
+      <AvatarPerfil nome={nickname} tamanho={44} />
+      <Text style={estilos.jogadorNome} numberOfLines={1}>
+        {nickname}
+      </Text>
+      {confirmado ? <Selo texto="Confirmou" tom="verde" icone="checkmark" /> : <Selo texto="Aguardando" tom="neutro" />}
     </View>
   );
 }
 
 const estilos = StyleSheet.create({
-  container: { flex: 1, backgroundColor: cores.pagina },
-  conteudo: {
+  tela: {
+    flex: 1,
     paddingHorizontal: espacamento.md,
-    paddingBottom: espacamento.xl,
+    gap: espacamento.md,
   },
-  timer: {
+  fechar: {
+    alignSelf: "flex-end",
+    width: 40,
+    height: 40,
     alignItems: "center",
-    paddingVertical: espacamento.lg,
-    borderRadius: raio.cartao,
-    overflow: "hidden",
-    backgroundColor: paleta.roxo[950],
-    ...sombras.md,
+    justifyContent: "center",
   },
-  timerTexto: {
+  centro: {
+    flex: 1,
+    justifyContent: "center",
+    gap: espacamento.lg,
+  },
+  topo: {
+    alignItems: "center",
+    gap: 4,
+  },
+  kicker: {
     fontFamily: fontes.extrabold,
-    fontSize: 56,
-    lineHeight: 64,
+    fontSize: tamanhoFonte.sm,
+    letterSpacing: 1.2,
+    opacity: 0.8,
+  },
+  titulo: {
+    fontFamily: fontes.marca,
+    fontSize: 32,
+    lineHeight: 38,
+    letterSpacing: 0.6,
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
+  versus: {
+    fontFamily: fontes.bold,
+    fontSize: tamanhoFonte.lg,
+  },
+  tempo: {
+    marginTop: espacamento.sm,
+    fontFamily: fontes.extrabold,
+    fontSize: 64,
+    lineHeight: 72,
     letterSpacing: -1,
     fontVariant: ["tabular-nums"],
-    color: cores.textoInverso,
   },
-  timerLabel: {
-    fontFamily: fontes.medio,
+  tempoRotulo: {
+    fontFamily: fontes.semibold,
     fontSize: tamanhoFonte.md,
-    color: paleta.tinta[300],
+    opacity: 0.8,
   },
-  timerExpirado: {
-    backgroundColor: paleta.vermelho[100],
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  timerExpiradoTexto: {
-    fontFamily: fontes.marca,
-    fontSize: tamanhoFonte.xl,
-    letterSpacing: 1,
-    color: paleta.vermelho[700],
-  },
-  jogadores: {
-    ...cartao,
-    flexDirection: "row",
+  // Ocupa o resto da tela: é o único alvo de toque
+  botaoGigante: {
+    flex: 1,
+    minHeight: 240,
     alignItems: "center",
+    justifyContent: "center",
     gap: espacamento.sm,
-    marginTop: espacamento.md,
-    padding: espacamento.md,
+    borderRadius: 36,
+    backgroundColor: paleta.verde[950],
+    ...sombras.md,
+  },
+  botaoGiganteApertado: {
+    backgroundColor: paleta.verde[900],
+    transform: [{ scale: 0.985 }],
+  },
+  botaoTexto: {
+    fontFamily: fontes.marca,
+    fontSize: 38,
+    lineHeight: 44,
+    letterSpacing: 1,
+    textAlign: "center",
+    textTransform: "uppercase",
+    color: paleta.branco,
+  },
+  rodape: {
+    fontFamily: fontes.medio,
+    fontSize: tamanhoFonte.sm,
+    lineHeight: 18,
+    textAlign: "center",
+    opacity: 0.85,
+  },
+  cartaoEstado: {
+    alignItems: "center",
+    gap: espacamento.ms,
+    paddingVertical: espacamento.lg,
+    paddingHorizontal: espacamento.md,
     borderRadius: raio.cartao,
   },
-  jogador: { flex: 1, alignItems: "center", gap: 8 },
+  tituloEstado: {
+    fontFamily: fontes.marca,
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: 0.6,
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
+  textoEstado: {
+    fontFamily: fontes.medio,
+    fontSize: tamanhoFonte.base,
+    lineHeight: 22,
+    textAlign: "center",
+  },
+  jogadores: {
+    alignSelf: "stretch",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: espacamento.lg,
+    marginTop: espacamento.sm,
+    padding: espacamento.md,
+    borderRadius: raio.cartao,
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
+  },
+  jogador: {
+    flex: 1,
+    alignItems: "center",
+    gap: 6,
+  },
   jogadorNome: {
     maxWidth: "100%",
     fontFamily: fontes.bold,
     fontSize: tamanhoFonte.base,
-    textAlign: "center",
-    color: cores.texto,
-  },
-  vs: {
-    fontFamily: fontes.marca,
-    fontSize: tamanhoFonte.lg,
-    color: paleta.roxo[300],
-  },
-  acoes: {
-    gap: espacamento.ms,
-    marginTop: espacamento.lg,
+    color: paleta.verde[950],
   },
 });

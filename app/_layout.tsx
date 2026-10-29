@@ -12,6 +12,7 @@ import {
   PlusJakartaSans_800ExtraBold,
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { Bungee_400Regular } from "@expo-google-fonts/bungee";
+import { ConvocacaoAutomatica } from "../src/components/ConvocacaoAutomatica";
 import { AuthProvider } from "../src/context/authContext";
 import { NotificacaoProvider } from "../src/context/notificacaoContext";
 import { InscricoesProvider } from "../src/context/inscricoesContext";
@@ -43,6 +44,7 @@ export default function LayoutRaiz() {
           <NotificacaoProvider>
             {/* Telas com topo escuro (home, capas) trocam para ícones claros enquanto estão em foco */}
             <StatusBar style="dark" />
+            <ConvocacaoAutomatica />
             <Stack
               screenOptions={{
                 headerShown: false,
@@ -57,6 +59,7 @@ export default function LayoutRaiz() {
               <Stack.Screen name="evento/[id]" />
               <Stack.Screen name="torneio/[id]/chaveamento" />
               <Stack.Screen name="torneio/[id]/confronto" />
+              <Stack.Screen name="check-in/[id]" options={{ animation: "fade", gestureEnabled: false }} />
               <Stack.Screen name="meus-torneios" />
               <Stack.Screen name="deck" />
               <Stack.Screen name="configuracoes" />
