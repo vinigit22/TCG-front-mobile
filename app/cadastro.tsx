@@ -17,6 +17,7 @@ import { espacamento, fontes, raio, sombras, tamanhoFonte } from "../src/constan
 import { dataParaIso, ehMenorDeIdade, mascararData } from "../src/utils/idade";
 import { BotaoVoltar } from "../src/components/BotaoVoltar";
 import { TermosDeUso } from "../src/components/TermosDeUso";
+import { PoliticaDePrivacidade } from "../src/components/PoliticaDePrivacidade";
 import { Botao } from "../src/components/ui/Botao";
 import { Campo } from "../src/components/ui/Campo";
 import { Brilho } from "../src/components/ui/Capa";
@@ -44,6 +45,8 @@ export default function Cadastro() {
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [aceitouTermos, setAceitouTermos] = useState(false);
   const [termosAbertos, setTermosAbertos] = useState(false);
+  const [aceitouPrivacidade, setAceitouPrivacidade] = useState(false);
+  const [privacidadeAberta, setPrivacidadeAberta] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erroValidacao, setErroValidacao] = useState<string | null>(null);
 
@@ -73,6 +76,11 @@ export default function Cadastro() {
       return;
     }
 
+    if (!aceitouTermos || !aceitouPrivacidade) {
+      setErroValidacao("Leia e aceite os Termos de Uso e a Pol\u00edtica de Privacidade para continuar.");
+      return;
+    }
+
     setErroValidacao(null);
     setCarregando(true);
     try {
@@ -93,6 +101,11 @@ export default function Cadastro() {
   function aoConcordar() {
     setAceitouTermos(true);
     setTermosAbertos(false);
+  }
+
+  function aoConcordarComPrivacidade() {
+    setAceitouPrivacidade(true);
+    setPrivacidadeAberta(false);
   }
 
   const mensagemErro = erroValidacao ?? erro;
@@ -159,25 +172,37 @@ export default function Cadastro() {
             <Campo rotulo="Confirmar senha" value={confirmarSenha} onChangeText={setConfirmarSenha} senha autoComplete="new-password" placeholder="Repita a senha" />
           </View>
 
-          <Pressable
-            onPress={() => setTermosAbertos(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Abrir os termos de uso"
-            style={({ pressed }) => [estilos.termos, aceitouTermos && estilos.termosAceitos, pressed && estilos.termosPressionado]}
-          >
-            <Ionicons
-              name={aceitouTermos ? "checkmark-circle" : "document-text-outline"}
-              size={24}
-              color={aceitouTermos ? paleta.verde[600] : paleta.roxo[600]}
-            />
-            <View style={estilos.termosTextos}>
+          <View style={[estilos.termos, aceitouTermos && estilos.termosAceitos]}>
+            <Pressable
+              onPress={() => setAceitouTermos((aceitou) => !aceitou)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: aceitouTermos }}
+              accessibilityLabel="Aceitar os termos de uso"
+              style={[estilos.caixaAceite, aceitouTermos && estilos.caixaAceiteMarcada]}
+            >
+              {aceitouTermos ? <Ionicons name="checkmark" size={18} color={cores.superficie} /> : null}
+            </Pressable>
+            <Pressable onPress={() => setTermosAbertos(true)} accessibilityRole="link" style={estilos.termosLeitura}>
               <Text style={estilos.termosTitulo}>Termos de uso</Text>
-              <Text style={estilos.termosInfo}>
-                {aceitouTermos ? "Você concordou com os termos de uso." : "Toque para ler e concordar antes de se cadastrar."}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={cores.texto3} />
-          </Pressable>
+              <Text style={estilos.termosInfo}>Toque aqui para ler o documento.</Text>
+            </Pressable>
+          </View>
+
+          <View style={[estilos.termos, aceitouPrivacidade && estilos.termosAceitos]}>
+            <Pressable
+              onPress={() => setAceitouPrivacidade((aceitou) => !aceitou)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: aceitouPrivacidade }}
+              accessibilityLabel={"Aceitar a Pol\u00edtica de Privacidade"}
+              style={[estilos.caixaAceite, aceitouPrivacidade && estilos.caixaAceiteMarcada]}
+            >
+              {aceitouPrivacidade ? <Ionicons name="checkmark" size={18} color={cores.superficie} /> : null}
+            </Pressable>
+            <Pressable onPress={() => setPrivacidadeAberta(true)} accessibilityRole="link" style={estilos.termosLeitura}>
+              <Text style={estilos.termosTitulo}>{"Pol\u00edtica de Privacidade"}</Text>
+              <Text style={estilos.termosInfo}>Toque aqui para ler o documento.</Text>
+            </Pressable>
+          </View>
 
           {mensagemErro ? <Faixa tom="vermelho" texto={mensagemErro} estilo={estilos.erro} /> : null}
 
@@ -187,7 +212,7 @@ export default function Cadastro() {
             tamanho="lg"
             larguraTotal
             carregando={carregando}
-            desabilitado={!aceitouTermos}
+            desabilitado={!aceitouTermos || !aceitouPrivacidade}
             aoPressionar={aoCadastrar}
           />
 
@@ -200,6 +225,7 @@ export default function Cadastro() {
       </ScrollView>
 
       <TermosDeUso visivel={termosAbertos} aoFechar={() => setTermosAbertos(false)} aoConcordar={aoConcordar} />
+      <PoliticaDePrivacidade visivel={privacidadeAberta} aoFechar={() => setPrivacidadeAberta(false)} aoConcordar={aoConcordarComPrivacidade} />
     </KeyboardAvoidingView>
   );
 }
@@ -266,9 +292,28 @@ const estilos = StyleSheet.create({
     borderColor: paleta.verde[200],
     backgroundColor: paleta.verde[50],
   },
+  caixaAceite: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: raio.sm,
+    borderWidth: 2,
+    borderColor: paleta.roxo[500],
+    backgroundColor: cores.superficie,
+  },
+  caixaAceiteMarcada: {
+    borderColor: paleta.verde[600],
+    backgroundColor: paleta.verde[600],
+  },
   termosPressionado: {
     borderColor: paleta.roxo[200],
     backgroundColor: paleta.roxo[50],
+  },
+  termosLeitura: {
+    flex: 1,
+    gap: 2,
+    paddingVertical: 2,
   },
   termosTextos: {
     flex: 1,
@@ -278,6 +323,7 @@ const estilos = StyleSheet.create({
     fontFamily: fontes.bold,
     fontSize: tamanhoFonte.base,
     color: cores.texto,
+    textDecorationLine: "underline",
   },
   termosInfo: {
     fontFamily: fontes.regular,
