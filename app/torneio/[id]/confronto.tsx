@@ -20,8 +20,8 @@ const INTERVALO_ATUALIZACAO = 10000;
 
 // Do ponto de vista do jogador (o painel da loja usa os rótulos de core/rotulos.ts)
 const rotulosStatus: Record<StatusPartida, string> = {
-  AGUARDANDO: "Aguardando partida",
-  PRONTA: "Novo confronto disponível",
+  AGUARDANDO: "Aguardando adversário",
+  PRONTA: "Aguardando a loja chamar",
   EM_ANDAMENTO: "Partida em andamento",
   FINALIZADA: "Partida finalizada",
 };
@@ -125,6 +125,7 @@ export default function ConfrontoTorneio() {
 
   const meuCheckIn = souJogadorA ? detalhe?.checkInAEm : detalhe?.checkInBEm;
   const checkInAdversario = souJogadorA ? detalhe?.checkInBEm : detalhe?.checkInAEm;
+  // eslint-disable-next-line react-hooks/purity -- a tela recarrega a partida periodicamente; o prazo é reavaliado a cada render
   const convocada = !!detalhe?.checkInExpiraEm && new Date(detalhe.checkInExpiraEm).getTime() > Date.now();
   const ambosConfirmaram = !!detalhe?.checkInAEm && !!detalhe?.checkInBEm;
   const emAndamento = !finalizada && (partidaAtual.status === "EM_ANDAMENTO" || ambosConfirmaram);

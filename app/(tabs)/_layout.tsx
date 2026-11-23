@@ -13,15 +13,15 @@ type NomeIcone = keyof typeof Ionicons.glyphMap;
 
 function icone(nome: string) {
   return function IconeAba({ color, focused }: { color: ColorValue; focused: boolean }) {
-    return <Ionicons name={(focused ? nome : `${nome}-outline`) as NomeIcone} size={22} color={color} />;
+    return <Ionicons name={(focused ? nome : `${nome}-outline`) as NomeIcone} size={22} color={color as string} />;
   };
 }
 
 function IconePerfilAba({ color, focused }: { color: ColorValue; focused: boolean }) {
   const { usuario } = useAuth();
   const foto = montarUrlImagem(usuario?.imagemPerfil);
-  if (foto) return <Image source={{ uri: foto }} style={[estilos.avatarAba, { borderColor: color }]} />;
-  return <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />;
+  if (foto) return <Image source={{ uri: foto }} style={[estilos.avatarAba, { borderColor: color as string }]} />;
+  return <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color as string} />;
 }
 
 // Barra de abas com a cara da navbar do site: fundo roxo-noite, rótulos em Bungee, ativo em verde-menta

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -65,7 +66,7 @@ export default function CheckIn() {
   const { usuario } = useAuth();
 
   const [partida, setPartida] = useState<PartidaCheckIn | null>(null);
-  const [agora, setAgora] = useState(Date.now());
+  const [agora, setAgora] = useState(() => Date.now());
   const [fazendoCheckIn, setFazendoCheckIn] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const avisouConvocacao = useRef(false);
@@ -149,6 +150,8 @@ export default function CheckIn() {
 
   return (
     <View style={[estilos.tela, { backgroundColor: fundo, paddingTop: insets.top + espacamento.sm, paddingBottom: insets.bottom + espacamento.md }]}>
+      {/* Fundo verde: ícones escuros; vermelho ou roxo-noite: ícones claros */}
+      <StatusBar style={verde ? "dark" : "light"} />
       <Pressable
         onPress={fechar}
         accessibilityRole="button"

@@ -48,7 +48,7 @@ export default function Configuracoes() {
           <ItemLista
             icone="notifications-outline"
             titulo="Notificações push"
-            detalhe="Em breve"
+            detalhe={notificacoesAtivas ? "Ativadas · envio ao celular em breve" : "Desativadas"}
             direita={
               // O mesmo interruptor do web: verde quando ligado
               <Switch

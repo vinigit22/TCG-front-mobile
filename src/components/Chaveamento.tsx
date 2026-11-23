@@ -11,6 +11,8 @@ import { Selo } from "./ui/Selo";
 
 interface ChaveamentoProps {
   partidas: ChaveamentoTipo[];
+  // Nickname do jogador logado: a linha dele ganha destaque e o selo "Você"
+  meuNickname?: string;
 }
 
 function nomeDoLado(partida: ChaveamentoTipo, lado: "A" | "B") {
@@ -57,17 +59,19 @@ interface LinhaJogadorProps {
   perdeu: boolean;
   mostrarPlacar: boolean;
   campeao: boolean;
+  souEu: boolean;
 }
 
-function LinhaJogador({ nome, games, definido, venceu, perdeu, mostrarPlacar, campeao }: LinhaJogadorProps) {
+function LinhaJogador({ nome, games, definido, venceu, perdeu, mostrarPlacar, campeao, souEu }: LinhaJogadorProps) {
   return (
-    <View style={[estilos.linhaJogador, venceu && estilos.linhaVencedora, perdeu && estilos.linhaPerdedora]}>
+    <View style={[estilos.linhaJogador, souEu && estilos.linhaMinha, venceu && estilos.linhaVencedora, perdeu && estilos.linhaPerdedora]}>
       <Text
         numberOfLines={1}
         style={[estilos.nomeJogador, venceu && estilos.nomeVencedor, !definido && estilos.nomeIndefinido]}
       >
         {nome}
       </Text>
+      {souEu ? <Selo texto="Você" tom="roxo" ponto={false} estilo={{ alignSelf: "center" }} /> : null}
       {campeao ? <Selo texto="Campeão" tom="ambar" icone="trophy" /> : null}
       {mostrarPlacar ? <Text style={[estilos.placar, venceu && estilos.placarVencedor]}>{games}</Text> : null}
     </View>
@@ -79,9 +83,10 @@ interface CartaoPartidaProps {
   eFinal: boolean;
   temCampeao: boolean;
   aoPressionar: () => void;
+  meuNickname?: string;
 }
 
-function CartaoPartida({ partida, eFinal, temCampeao, aoPressionar }: CartaoPartidaProps) {
+function CartaoPartida({ partida, eFinal, temCampeao, aoPressionar, meuNickname }: CartaoPartidaProps) {
   const venceuA = !!partida.vencedor && partida.vencedor === partida.jogadorA;
   const venceuB = !!partida.vencedor && partida.vencedor === partida.jogadorB;
   const mostrarPlacar = partida.status === "FINALIZADA" || partida.status === "EM_ANDAMENTO";
@@ -109,6 +114,7 @@ function CartaoPartida({ partida, eFinal, temCampeao, aoPressionar }: CartaoPart
         perdeu={venceuB}
         mostrarPlacar={mostrarPlacar}
         campeao={eFinal && temCampeao && venceuA}
+        souEu={!!meuNickname && partida.jogadorA === meuNickname}
       />
       <LinhaJogador
         nome={nomeDoLado(partida, "B")}
@@ -118,12 +124,13 @@ function CartaoPartida({ partida, eFinal, temCampeao, aoPressionar }: CartaoPart
         perdeu={venceuA}
         mostrarPlacar={mostrarPlacar}
         campeao={eFinal && temCampeao && venceuB}
+        souEu={!!meuNickname && partida.jogadorB === meuNickname}
       />
     </Pressable>
   );
 }
 
-export function Chaveamento({ partidas }: ChaveamentoProps) {
+export function Chaveamento({ partidas, meuNickname }: ChaveamentoProps) {
   const { height: alturaTela } = useWindowDimensions();
   const [selecionada, setSelecionada] = useState<ChaveamentoTipo | null>(null);
   const [rodadaEscolhida, setRodadaEscolhida] = useState<number | null>(null);
@@ -229,6 +236,7 @@ export function Chaveamento({ partidas }: ChaveamentoProps) {
             eFinal={eFinalAtiva}
             temCampeao={!!campeao}
             aoPressionar={() => setSelecionada(partida)}
+            meuNickname={meuNickname}
           />
         ))}
       </ScrollView>
@@ -429,6 +437,10 @@ const estilos = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: "transparent",
     backgroundColor: paleta.tinta[50],
+  },
+  linhaMinha: {
+    backgroundColor: paleta.roxo[50],
+    borderLeftColor: paleta.roxo[400],
   },
   linhaVencedora: {
     backgroundColor: paleta.verde[50],

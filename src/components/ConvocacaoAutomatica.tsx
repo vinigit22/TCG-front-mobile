@@ -16,7 +16,9 @@ export function ConvocacaoAutomatica() {
   const caminhoAtual = useRef(caminho);
   const jaAbertas = useRef<Set<string>>(new Set());
 
-  caminhoAtual.current = caminho;
+  useEffect(() => {
+    caminhoAtual.current = caminho;
+  }, [caminho]);
   const usuarioId = usuario?.id;
   const navegacaoPronta = !!navegacao?.key;
 

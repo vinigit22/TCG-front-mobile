@@ -17,7 +17,7 @@ interface BarraNavegacaoProps {
 // Cabeçalho da home: a navbar do site (fundo roxo-noite, linha lilás embaixo, a mesma logo)
 export function BarraNavegacao({ aoAbrirPesquisa, aoFecharPesquisa, pesquisaAberta, termoPesquisa, aoMudarPesquisa }: BarraNavegacaoProps) {
   const insets = useSafeAreaInsets();
-  const campoPesquisa = useRef<TextInput>(null);
+  const campoPesquisa = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   useEffect(() => {
     if (pesquisaAberta) requestAnimationFrame(() => campoPesquisa.current?.focus());

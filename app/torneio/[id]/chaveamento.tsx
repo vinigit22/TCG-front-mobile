@@ -7,12 +7,14 @@ import { BotaoVoltar } from "../../../src/components/BotaoVoltar";
 import { CabecalhoPagina } from "../../../src/components/ui/CabecalhoPagina";
 import { EstadoVazio } from "../../../src/components/ui/EstadoVazio";
 import { useChaveamento } from "../../../src/hooks/useChaveamento";
+import { useAuth } from "../../../src/context/authContext";
 import { cores } from "../../../src/constants/colors";
 import { espacamento } from "../../../src/constants/theme";
 
 export default function ChaveamentoTorneio() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { usuario } = useAuth();
   const { partidas, carregando, erro } = useChaveamento(Number(id), 10000);
 
   return (
@@ -25,7 +27,7 @@ export default function ChaveamentoTorneio() {
         ) : erro ? (
           <EstadoVazio erro titulo="Não foi possível carregar o chaveamento" texto="Confira sua conexão e tente de novo." />
         ) : (
-          <Chaveamento partidas={partidas} />
+          <Chaveamento partidas={partidas} meuNickname={usuario?.nickname} />
         )}
       </View>
     </View>

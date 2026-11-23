@@ -30,7 +30,6 @@ export function LequeCartas({ escala = 1 }: { escala?: number }) {
       <View style={[estilos.carta, carta, { backgroundColor: paleta.verde[400], transform: [{ translateX: 20 * escala }, { rotate: "12deg" }] }]} />
       <View style={[estilos.carta, carta, estilos.frente, { borderWidth: 3 * escala, transform: [{ translateY: -4 * escala }, { rotate: "-2deg" }] }]}>
         <Degrade de={paleta.roxo[300]} para={paleta.verde[300]} faixas={10} estilo={StyleSheet.absoluteFill} />
-        <Text style={[estilos.estrela, { fontSize: 26 * escala, lineHeight: 30 * escala }]}>★</Text>
         <Text style={[estilos.cartaTexto, { fontSize: 7 * escala }]}>TOPDECK</Text>
       </View>
     </View>
@@ -53,9 +52,6 @@ const estilos = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
     borderColor: paleta.branco,
-  },
-  estrela: {
-    color: paleta.roxo[950],
   },
   cartaTexto: {
     fontFamily: fontes.marca,

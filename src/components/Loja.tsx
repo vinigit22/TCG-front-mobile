@@ -11,7 +11,7 @@ interface LojaProps {
   claro?: boolean;
 }
 
-// Nome da loja com o selo de verificada (o ✓ verde do site)
+// Nome da loja com o selo de verificada (o selo verde do site)
 export function Loja({ nome, verificada, claro = false }: LojaProps) {
   return (
     <View style={estilos.container}>
