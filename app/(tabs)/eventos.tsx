@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isAxiosError } from "axios";
@@ -15,6 +15,7 @@ import { cores, paleta } from "../../src/constants/colors";
 import { cartao, espacamento, fontes, raio, tamanhoFonte } from "../../src/constants/theme";
 import { formatarHora } from "../../src/utils/formatadores";
 import { ROTULOS_STATUS_EVENTO, ROTULOS_TIPO_EVENTO, TOM_STATUS_EVENTO } from "../../src/utils/status";
+import { montarUrlImagem } from "../../src/services/api";
 
 const INTERVALO_ATUALIZACAO = 15000;
 const STATUS_VISIVEIS: Evento["status"][] = ["PUBLICADO", "EM_ANDAMENTO"];
@@ -29,15 +30,31 @@ function descreverErro(erro: unknown) {
 }
 
 function CartaoEvento({ evento, aoPressionar }: { evento: Evento; aoPressionar: () => void }) {
+  const [imagemComErro, setImagemComErro] = useState(false);
+  const imagem = montarUrlImagem(evento.imagem);
+
   return (
     <Pressable
-      style={({ pressed }) => [estilos.card, pressed && estilos.cardPressionado]}
+      style={({ pressed }) => [estilos.card, !imagem && estilos.cardSemImagem, pressed && estilos.cardPressionado]}
       onPress={aoPressionar}
       accessibilityRole="button"
       accessibilityLabel={evento.titulo}
     >
-      <DataBloco dataIso={evento.dataInicio} />
-      <View style={estilos.cardCorpo}>
+      {imagem ? <View style={estilos.midia}>
+        {imagem && !imagemComErro ? (
+          <Image source={{ uri: imagem }} style={estilos.imagem} resizeMode="cover" onError={() => setImagemComErro(true)} accessibilityLabel={`Imagem do evento ${evento.titulo}`} />
+        ) : (
+          <View style={estilos.imagemIndisponivel}>
+            <Ionicons name="image-outline" size={28} color={paleta.roxo[200]} />
+            <Text style={estilos.imagemIndisponivelTexto}>{imagem ? "Imagem indisponivel" : "Evento"}</Text>
+          </View>
+        )}
+        <View style={estilos.dataSobreposta}>
+          <DataBloco dataIso={evento.dataInicio} />
+        </View>
+      </View> : null}
+      {!imagem ? <DataBloco dataIso={evento.dataInicio} /> : null}
+      <View style={[estilos.cardCorpo, !imagem && estilos.cardCorpoSemImagem]}>
         <View style={estilos.cardTopo}>
           <Text style={estilos.tipo} numberOfLines={1}>
             {ROTULOS_TIPO_EVENTO[evento.tipo]}
@@ -159,15 +176,19 @@ const estilos = StyleSheet.create({
   carregando: { marginTop: espacamento.xl },
   card: {
     ...cartao,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 14,
-    padding: espacamento.md,
+    overflow: "hidden",
     marginBottom: espacamento.ms,
     borderRadius: raio.cartao,
   },
+  cardSemImagem: { flexDirection: "row", alignItems: "flex-start", gap: 14, padding: espacamento.md },
   cardPressionado: { borderColor: paleta.roxo[200], backgroundColor: paleta.roxo[50] },
-  cardCorpo: { flex: 1, minWidth: 0 },
+  midia: { height: 190, backgroundColor: paleta.roxo[800] },
+  imagem: { width: "100%", height: "100%" },
+  imagemIndisponivel: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", gap: espacamento.xs, backgroundColor: paleta.roxo[800] },
+  imagemIndisponivelTexto: { fontFamily: fontes.semibold, fontSize: tamanhoFonte.sm, color: paleta.roxo[100] },
+  dataSobreposta: { position: "absolute", top: espacamento.ms, left: espacamento.ms },
+  cardCorpo: { padding: espacamento.md },
+  cardCorpoSemImagem: { flex: 1, minWidth: 0, padding: 0 },
   cardTopo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: espacamento.sm, marginBottom: 6 },
   tipo: { flexShrink: 1, fontFamily: fontes.bold, fontSize: tamanhoFonte.xxs, letterSpacing: 0.6, textTransform: "uppercase", color: paleta.roxo[600] },
   cardTitulo: { fontFamily: fontes.extrabold, fontSize: tamanhoFonte.lg, lineHeight: 22, letterSpacing: -0.2, color: cores.texto },

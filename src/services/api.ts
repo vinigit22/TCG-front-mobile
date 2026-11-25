@@ -40,9 +40,10 @@ api.interceptors.response.use(
 );
 
 export function montarUrlImagem(caminho?: string): string | undefined {
-  if (!caminho) return undefined;
-  if (caminho.startsWith("/")) return configuracao.apiUrl.replace(/\/$/, "") + caminho;
-  return caminho;
+  const url = caminho?.trim();
+  if (!url) return undefined;
+  if (url.startsWith("/")) return configuracao.apiUrl.replace(/\/$/, "") + url;
+  return url;
 }
 
 export default api;
